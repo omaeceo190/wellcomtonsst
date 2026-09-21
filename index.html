@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050716">
+<title>حفل الاستقبال — كلية علوم الملاحة وتكنولوجيا الفضاء | جامعة بني سويف الأهلية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050716; --ink:#eef3ff; --muted:#9fb0e6; --accent:#6ee7ff; --accent2:#b18cff; --gold:#ffcf6b;
+  --card:rgba(12,18,50,.7); --line:rgba(140,170,255,.22);
+  --grid:rgba(110,190,255,.07);
+  color-scheme: dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(ellipse 70% 55% at 22% 30%, rgba(70,70,190,.16), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 80% 75%, rgba(40,80,180,.14), transparent 70%),
+    var(--bg);
+  color:var(--ink);
+  font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#stars{z-index:0}
+#fx{z-index:28;pointer-events:none}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+
+/* ---------- المؤشرات التقنية / HUD الثابتة ---------- */
+/* شبكة تقنية خفيفة تظهر تحت المشاهد */
+.grd{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.55;background:
+  repeating-linear-gradient(0deg,transparent 0 44px,var(--grid) 44px 45px),
+  repeating-linear-gradient(90deg,transparent 0 44px,var(--grid) 44px 45px);
+  -webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 30%,transparent 78%);
+  mask-image:radial-gradient(ellipse at 50% 45%,#000 30%,transparent 78%);
+  transition:opacity .6s}
+body[data-scene="4"] .grd{opacity:.16}
+.hud{position:fixed;inset:0;z-index:25;pointer-events:none;transition:opacity .8s}
+body[data-scene="4"] .hud{opacity:0}
+.hud .corner{position:absolute;width:26px;height:26px;border:2px solid rgba(110,231,255,.5);border-radius:3px;transition:border-color .6s}
+.hud .corner.c1{top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;border-right:0;border-bottom:0}
+.hud .corner.c2{top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;border-left:0;border-bottom:0}
+.hud .corner.c3{bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:12px;border-right:0;border-top:0}
+.hud .corner.c4{bottom:calc(env(safe-area-inset-bottom,0px) + 12px);right:12px;border-left:0;border-top:0}
+.hud .st{position:absolute;font-family:'Orbitron','Cairo',sans-serif;letter-spacing:.14em;font-size:10.5px;color:var(--muted);background:rgba(6,10,30,.55);border:1px solid rgba(110,231,255,.22);border-radius:5px;padding:5px 10px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);white-space:nowrap}
+.hud .st.tl{top:calc(env(safe-area-inset-top,0px) + 46px);left:14px;direction:ltr}
+.hud .st.tr{top:calc(env(safe-area-inset-top,0px) + 46px);right:14px;direction:ltr}
+.hud .st.bl{bottom:calc(env(safe-area-inset-bottom,0px) + 46px);left:14px;direction:ltr;font-size:9.5px}
+.hud .st.br{bottom:calc(env(safe-area-inset-bottom,0px) + 46px);right:14px;direction:ltr;font-size:9.5px}
+.hud .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#37ff9c;margin-inline-start:6px;box-shadow:0 0 8px #37ff9c;animation:blinkDot 2.2s infinite}
+@keyframes blinkDot{50%{opacity:.25}}
+.hud .lbl{color:rgba(159,176,230,.75)}
+
+/* ---------- المشاهد ---------- */
+.scene{position:fixed;inset:0;z-index:5;opacity:0;visibility:hidden;transition:opacity .8s ease,visibility .8s}
+.scene.active{opacity:1;visibility:visible}
+
+/* ---------- الرائد ---------- */
+#astro{position:fixed;left:0;top:0;z-index:20;width:clamp(60px,14vmin,120px);aspect-ratio:2/3;opacity:0;pointer-events:none;will-change:transform;filter:drop-shadow(0 0 10px rgba(120,190,255,.4))}
+#astro svg{width:100%;height:100%;overflow:visible;display:block}
+#astro .flame{transform-origin:60px 112px;animation:flame .18s infinite alternate}
+@keyframes flame{from{transform:scaleY(.8);opacity:.85}to{transform:scaleY(1.15);opacity:1}}
+/* مشي الرائد */
+#astro.walk svg{animation:walkSway .5s ease-in-out infinite}
+@keyframes walkSway{50%{transform:translateY(-2.5px) rotate(2.5deg)}}
+/* هبوط الرائد (ارتدادة لمس الأرض) */
+#astro.landed svg{animation:bounce1 .5s ease 1}
+@keyframes bounce1{0%{transform:translateY(0)}30%{transform:translateY(-16px)}55%{transform:translateY(0)}72%{transform:translateY(-7px)}100%{transform:translateY(0)}}
+/* مظلة هبوط بسيطة */
+#astro.chute::before{content:"";position:absolute;top:-16px;left:50%;transform:translateX(-50%);width:34px;height:20px;border-radius:50% 50% 42% 42%;background:linear-gradient(#ffd27a,#e8894c);opacity:.9;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+#astro.chute::after{content:"";position:absolute;top:2px;left:50%;transform:translateX(-50%);width:2px;height:20px;background:repeating-linear-gradient(180deg,#cfd6ea 0 3px,transparent 3px 6px);opacity:.7}
+
+/* ---------- المشهد ١: مرحلة الفضاء ---------- */
+.hero{position:absolute;top:calc(env(safe-area-inset-top,0px) + 3vh);left:0;right:0;text-align:center;padding:0 16px;z-index:3;pointer-events:none;transition:opacity .6s}
+.hero small{display:block;font-family:'Orbitron','Cairo',sans-serif;letter-spacing:.16em;color:var(--accent);font-size:clamp(10.5px,2.6vw,14px)}
+.hero h1{margin:6px 0 0;font-weight:900;font-size:clamp(27px,6vw,50px);line-height:1.2;background:linear-gradient(90deg,#8fe9ff,#c7a8ff 55%,#ffd98a);-webkit-background-clip:text;background-clip:text;color:transparent;transition:opacity .5s}
+
+.phase{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .9s ease,visibility .9s}
+.phase.show{opacity:1;visibility:visible}
+
+/* البوابة/الأرض */
+.gate{position:absolute;transform:translate(-50%,-50%);width:min(46vw,420px);text-align:center}
+.gate .g-label{font-family:'Orbitron',sans-serif;letter-spacing:.2em;font-size:clamp(9px,2vw,12px);color:var(--muted);margin-top:6px;direction:ltr}
+/* الأرض المحسّنة */
+.earth{position:relative;width:100%;aspect-ratio:1;margin:0 auto;filter:drop-shadow(0 0 22px rgba(70,150,255,.35))}
+.earth svg{width:100%;height:100%;display:block;border-radius:50%;overflow:visible}
+.orbit{fill:none;stroke:rgba(110,231,255,.4);stroke-dasharray:4 7;stroke-width:1.2}
+.orbit.o1{animation:spin 46s linear infinite}
+.orbit.o2{animation:spin 70s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.earth .cl{animation:clouds 34s linear infinite}
+@keyframes clouds{to{transform:translateX(200px)}}
+.earth.pulse{animation:earthPulse 1.3s ease-in-out 3}
+@keyframes earthPulse{50%{filter:drop-shadow(0 0 40px rgba(120,210,255,.65))}}
+
+/* المركبة (الصاروخ) */
+.ship{position:absolute;left:0;top:0;width:clamp(74px,16vw,128px);opacity:0;border:0;background:none;padding:0;cursor:default;z-index:8;will-change:transform}
+.ship svg{width:100%;display:block;overflow:visible}
+.ship .jet{transform-origin:60px 246px;animation:flame .16s infinite alternate}
+.ship .flap{transition:transform .7s cubic-bezier(.6,.05,.2,1)}
+.ship .warn{animation:blinkAlt 1s steps(2) infinite}
+@keyframes blinkAlt{50%{filter:brightness(.3)}}
+.ship.open .flap{transform:translateY(-16px)}
+.ship.landing .jet{animation:none;transform:scaleY(.45);opacity:.35}
+.glow-spot{position:absolute;left:50%;transform:translateX(-50%);width:140%;height:70%;border-radius:50%;background:radial-gradient(ellipse,var(--accent) 0,transparent 65%);opacity:0;transition:opacity .6s;pointer-events:none}
+.ship.open .glow-spot{opacity:.55}
+
+#startWrap{position:absolute;left:0;right:0;top:38%;transform:translateY(-50%);text-align:center;padding:0 18px;z-index:3;transition:opacity .5s,transform .5s}
+#startWrap.gone{opacity:0;transform:translateY(-50%) scale(.94);pointer-events:none}
+.go-btn{font-weight:900;font-size:clamp(19px,5vw,30px);padding:.65em 1.5em;border-radius:14px;border:1.5px solid rgba(190,220,255,.6);cursor:pointer;background:linear-gradient(135deg,rgba(60,90,220,.7),rgba(120,70,220,.7));box-shadow:0 8px 30px rgba(70,110,255,.35);color:var(--ink)}
+.go-btn:active{transform:scale(.97)}
+.tagline{margin-top:12px;font-family:'Orbitron','Cairo',sans-serif;font-size:clamp(10.5px,2.6vw,13px);letter-spacing:.14em;color:var(--muted)}
+.hint{position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);white-space:nowrap;font-weight:800;font-size:clamp(13px,3.4vw,17px);color:#06101f;background:var(--gold);padding:5px 14px;border-radius:8px;opacity:0;pointer-events:none;box-shadow:0 0 18px rgba(255,207,107,.5)}
+.ship.ready .hint{opacity:1;animation:hintBob 1.1s ease-in-out infinite}
+@keyframes hintBob{50%{transform:translateX(-50%) translateY(-5px)}}
+
+/* ---------- المشهد ١: خريطة الحرم (شاشة ملاحة تكتيكية) ---------- */
+.phase-map{background:radial-gradient(ellipse at 50% 30%,#060b22,#020412 70%)}
+#phaseMap .mh{position:absolute;display:flex;justify-content:space-between;align-items:center;gap:10px}
+#phaseMap .mh.top{top:calc(env(safe-area-inset-top,0px) + 10px);left:14px;right:14px}
+#phaseMap .mh.top span{font-family:'Orbitron',sans-serif;font-size:clamp(9px,2.3vw,12px);letter-spacing:.14em;color:var(--accent);direction:ltr;white-space:nowrap}
+#phaseMap .mh.top b{display:inline-block;width:7px;height:7px;border-radius:50%;background:#37ff9c;box-shadow:0 0 8px #37ff9c;margin-inline-start:6px;vertical-align:middle}
+#phaseMap .mh.bl{left:14px;bottom:14px;direction:ltr;font-family:'Orbitron',sans-serif;font-size:clamp(8.5px,2.2vw,11px);color:var(--muted);line-height:1.7}
+#phaseMap .mh.br{right:14px;bottom:14px;direction:ltr;text-align:right;font-family:'Orbitron',sans-serif;font-size:clamp(8.5px,2.2vw,11px);color:var(--muted);line-height:1.7}
+.cmap{position:absolute;inset:0;width:100%;height:100%}
+.cmap text{font-family:'Orbitron','Cairo',sans-serif}
+.bname{fill:#dfe8ff;font-weight:700}
+.bsub{fill:var(--muted);font-size:12px}
+.btn{fill:#c8d3f0}
+#trailPath{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-dasharray:.5 16;opacity:0;filter:drop-shadow(0 0 6px var(--accent))}
+#trailPath.drawn{opacity:1;animation:trailMove 1.4s linear infinite}
+@keyframes trailMove{to{stroke-dashoffset:-16.5}}
+.hBuilding{transition:filter .6s}
+.hBuilding.arrived{filter:drop-shadow(0 0 16px var(--accent)) brightness(1.25)}
+
+/* ---------- المشهد ٢: ممر المبنى H ---------- */
+.ceil{position:absolute;left:0;right:0;top:0;height:11%;background:linear-gradient(#03060f,#0a1233);border-bottom:2px solid #2a3a7a;overflow:hidden}
+.ceil::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 90px,rgba(140,160,255,.12) 90px 92px)}
+.ceil::after{content:"";position:absolute;left:44%;right:44%;top:-8px;height:calc(100% + 6px);background:linear-gradient(180deg,#9fd8ff,transparent);border-radius:50%;opacity:.5;filter:blur(2px)}
+.wall{position:absolute;left:0;right:0;top:11%;height:62%;background:
+  linear-gradient(180deg,#0a1128,#0e1740),
+  repeating-linear-gradient(90deg,transparent 0 150px,rgba(110,150,255,.12) 150px 152px);}
+.wall::before{content:"";position:absolute;left:0;right:0;top:78%;height:22%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.55))}
+.wall::after{content:"";position:absolute;left:0;right:0;height:2px;top:30%;background:linear-gradient(90deg,transparent,rgba(110,231,255,.35) 50%,transparent)}
+.floor{position:absolute;left:0;right:0;top:73%;bottom:0;background:linear-gradient(#0e1838,#04070f);border-top:1px solid #4b7bff;overflow:hidden}
+.floor::before{content:"";position:absolute;left:-20%;right:-20%;top:0;bottom:0;background:
+  repeating-linear-gradient(90deg,transparent 0 74px,rgba(120,160,255,.22) 74px 76px),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.4) 0 60px,transparent 60px 62px);
+  transform:perspective(240px) rotateX(54deg);transform-origin:top}
+.floor::after{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:repeating-linear-gradient(90deg,#bd9a2f 0 30px,#191007 30px 34px);opacity:.5}
+.ph{position:absolute;top:46%;width:clamp(42px,8vw,84px);aspect-ratio:1;border-radius:50%;border:4px solid #5a6a98;background:radial-gradient(circle at 32% 28%,#24428c,#05091d 68%);box-shadow:inset 0 0 16px #000,0 0 14px rgba(90,130,255,.35)}
+.ph::after{content:"";position:absolute;left:25%;top:22%;width:22%;height:12%;border-radius:50%;background:rgba(255,255,255,.3);transform:rotate(-30deg)}
+.hatchL{position:absolute;left:4%;top:calc(73% - clamp(64px,13vmin,112px));width:clamp(56px,11.5vmin,98px);aspect-ratio:1;border-radius:50%;border:5px solid #5d6f9e;background:radial-gradient(circle,#0a2a52 0,#030c22 70%);box-shadow:0 0 18px rgba(90,150,255,.5),inset 0 0 20px #000}
+.hatchL::before{content:"";position:absolute;inset:14%;border-radius:50%;border:1px solid rgba(110,231,255,.45)}
+.sign{position:absolute;top:12%;left:50%;transform:translateX(-50%);width:min(88vw,560px);text-align:center;padding:16px 18px 12px;border-radius:10px;background:linear-gradient(#14204e,#0a1131);border:1px solid var(--accent);box-shadow:0 0 22px rgba(110,231,255,.35),inset 0 0 18px rgba(110,231,255,.12);animation:flick 5s infinite}
+.sign::before,.sign::after{content:"";position:absolute;top:-42px;width:3px;height:42px;background:#7783ab}
+.sign::before{left:26px}.sign::after{right:26px}
+.sign h2{margin:0;font-weight:900;font-size:clamp(24px,6.2vw,52px);color:#eafcff;text-shadow:0 0 10px #6ee7ff}
+.sign p{margin:4px 0 0;font-family:'Orbitron','Cairo',sans-serif;letter-spacing:.2em;font-size:clamp(9px,2.3vw,13px);color:var(--muted);direction:ltr}
+@keyframes flick{0%,92%,96%,100%{opacity:1}94%{opacity:.75}98%{opacity:.88}}
+
+/* ---------- باب H208 (بوابة معزلة جوية) ---------- */
+.door{position:absolute;right:5%;bottom:22%;height:clamp(170px,min(44vh,64vw),330px);aspect-ratio:.66;border:0;background:none;padding:0;cursor:default}
+.door .frame{position:absolute;inset:0;background:#050b1c;border:4px solid #7786ad;border-radius:14px;overflow:hidden;box-shadow:0 6px 30px rgba(60,90,160,.3),inset 0 0 0 1px rgba(140,170,255,.18)}
+/* لاصقات جانبية خارج الإطار */
+.door .frame::before,.door .frame::after{content:"";position:absolute;top:-4px;bottom:-4px;width:16px;border-top:4px solid #7786ad;border-bottom:4px solid #7786ad}
+.door .frame::before{left:-16px;border-left:4px solid #7786ad}
+.door .frame::after{right:-16px;border-right:4px solid #7786ad}
+/* أضواء تحذير جانبية */
+.door .warn{position:absolute;top:0;bottom:0;width:13px;background:repeating-linear-gradient(180deg,#2a1216 0 16px,#ff5a3c 16px 25px);box-shadow:inset 0 0 8px #000}
+.door .warn.l{left:4px}.door .warn.r{right:4px}
+.door .warn.l{animation:blinkAlt .95s steps(2) .5s infinite}
+.door .warn.r{animation:blinkAlt .95s steps(2) infinite}
+/* ضوء القاعة الداخلي خلف الباب (فوق أوراق الباب) */
+.door .light{position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse at 50% 55%,#fff 0,#caf5ff 24%,#4aa8ff 58%,transparent 82%);opacity:0;transition:opacity .8s}
+/* الباب الحلقي (Iris) */
+.door .iris{position:absolute;left:6%;right:6%;top:12%;bottom:8%;z-index:1;border-radius:50%;background:radial-gradient(circle at 50% 55%,#0a1430,#01020a 72%);overflow:hidden;border:2px solid #3d4d7c}
+.door .iris::after{content:"";position:absolute;inset:28%;border-radius:50%;background:radial-gradient(circle,#050b1e 40%,#01020a 75%);box-shadow:inset 0 0 22px #000;transition:inset .8s cubic-bezier(.6,.05,.2,1)}
+.door .blade{position:absolute;left:50%;top:50%;width:48%;height:11px;transform-origin:0 50%;transform:rotate(var(--a,0deg));background:linear-gradient(90deg,#4c5b86,#2c3560);border:1px solid rgba(150,175,255,.35);border-radius:5px;box-shadow:0 2px 5px rgba(0,0,0,.55);transition:transform .9s cubic-bezier(.6,.05,.2,1),filter .9s}
+.door.open .blade{transform:rotate(calc(var(--a,0deg) + 28deg));filter:brightness(1.4)}
+.door.open .iris::after{inset:120%}
+.door.open .light{opacity:1}
+/* لوحة H208 المضيئة */
+.plaque{position:absolute;top:-46px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-weight:700;font-size:clamp(15px,3.8vw,24px);padding:4px 16px;border-radius:6px;background:#07102c;border:1px solid var(--accent);color:#eafcff;text-shadow:0 0 8px var(--accent);box-shadow:0 0 16px rgba(110,231,255,.55);letter-spacing:.06em;direction:ltr}
+/* زرة/لوحة جانبية */
+.door .hpanel{position:absolute;top:10%;border-radius:5px;background:#0a1430;border:1px solid rgba(110,231,255,.4);padding:6px 5px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.door .hpanel.l{left:-30px}.door .hpanel.r{right:-30px}
+.door .hpanel i{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.door .hpanel i.off{background:#334;box-shadow:none}
+.door.ready{cursor:pointer;animation:doorReady 1.5s ease-in-out infinite}
+.door.ready .hint{opacity:1;animation:hintBob 1.1s ease-in-out infinite}
+@keyframes doorReady{50%{filter:drop-shadow(0 0 18px rgba(110,231,255,.85)) brightness(1.12)}}
+/* رجّة الطرق من الخارج */
+.door.knocking .frame{animation:shake .5s both}
+@keyframes shake{10%,90%{transform:translate(-1px,1px)}20%,80%{transform:translate(3px,-2px)}30%,50%,70%{transform:translate(-5px,2px)}40%,60%{transform:translate(5px,-2px)}}
+.door.knocking .warn{filter:brightness(2)}
+
+/* ---------- المشهد ٣: نافذة الترحيب (مودال) ---------- */
+#ahlan{position:fixed;inset:0;z-index:26;display:grid;place-items:center;padding:18px;opacity:0;visibility:hidden;transition:opacity .5s,visibility .5s}
+#ahlan.show{opacity:1;visibility:visible}
+#ahlan .ov{position:absolute;inset:0;background:rgba(2,5,14,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#ahlan .panel{position:relative;width:min(92vw,430px);background:linear-gradient(160deg,#0a1230,#050917);border:1px solid rgba(110,231,255,.6);color:var(--ink);padding:30px 22px 24px;text-align:center;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  box-shadow:0 0 40px rgba(70,140,255,.35),inset 0 0 30px rgba(110,231,255,.08);
+  transform:translateY(16px) scale(.94);transition:transform .5s cubic-bezier(.2,1.2,.3,1)}
+#ahlan.show .panel{transform:none}
+#ahlan .sys{font-family:'Orbitron',sans-serif;letter-spacing:.3em;color:var(--accent);font-size:12px;direction:ltr;text-shadow:0 0 10px var(--accent)}
+#ahlan .sys::before{content:"● ";color:#37ff9c;text-shadow:0 0 8px #37ff9c}
+#ahlan h1{margin:14px 0 0;font-weight:900;font-size:clamp(24px,7vw,34px);line-height:1.4;color:#f2f8ff}
+#ahlan h1 span{display:inline-block;filter:drop-shadow(0 0 12px rgba(255,200,110,.8))}
+#ahlan p{margin:10px 0 0;font-size:clamp(15px,4vw,17px);line-height:2;color:#d8e2ff}
+#ahlan .cta{margin-top:22px;font-weight:900;font-size:clamp(16px,4.4vw,19px);padding:.6em 2em;border-radius:12px;border:1px solid rgba(110,231,255,.75);background:linear-gradient(135deg,rgba(60,120,255,.45),rgba(130,90,255,.45));cursor:pointer;color:var(--ink);box-shadow:0 0 20px rgba(90,150,255,.4)}
+#ahlan .cta:active{transform:scale(.96)}
+#ahlan .bar{height:3px;width:60%;margin:16px auto 0;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:3px}
+
+/* ==========================================================
+   المشهد ٤: رحلة عبر الفضاء — نظام بصري جديد بالكامل
+   ========================================================== */
+#s4{
+  --space-black:#03050d; --space-blue:#07152b; --deep-violet:#17102d;
+  --cosmic-cyan:#69e7ff; --aurora-violet:#9d7cff; --stellar-gold:#f4c96b;
+  overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+  background:var(--space-black);
+}
+/* --- طبقات الفضاء السحيق --- */
+#s4 .cz{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  background:
+    radial-gradient(ellipse 62% 48% at 16% 28%, rgba(30,70,160,.17), transparent 68%),
+    radial-gradient(ellipse 55% 42% at 84% 74%, rgba(66,48,150,.16), transparent 68%),
+    radial-gradient(ellipse 40% 30% at 55% 96%, rgba(24,60,120,.14), transparent 70%),
+    linear-gradient(180deg,var(--space-black) 0%,var(--space-blue) 36%,var(--deep-violet) 70%,#020309 100%)}
+#s4 .stz{position:absolute;inset:0}
+#s4 .stz i{position:absolute;width:2px;height:2px;border-radius:50%;background:#cfe4ff;
+  box-shadow:0 0 4px rgba(150,200,255,.4);opacity:0;animation:tw 6s infinite}
+@keyframes tw{0%,100%{opacity:0}18%{opacity:.75}42%{opacity:.14}66%{opacity:.5}}
+/* شفق بطيء متغير ببطء شديد */
+#s4 .aur,#s4 .aur2{position:absolute;border-radius:50%;filter:blur(44px);opacity:.28;will-change:transform}
+#s4 .aur{left:-16vmax;top:5vh;width:62vmax;height:40vmax;background:
+  radial-gradient(circle at 32% 42%,rgba(60,150,255,.5),rgba(92,82,200,.15) 46%,transparent 72%);
+  animation:aurA 38s ease-in-out infinite alternate}
+#s4 .aur2{right:-14vmax;top:54vh;width:56vmax;height:32vmax;background:
+  radial-gradient(circle at 55% 48%,rgba(157,124,255,.38),rgba(28,44,108,.12) 52%,transparent 74%);
+  animation:aurB 46s ease-in-out infinite alternate}
+@keyframes aurA{from{transform:translate3d(-3vmax,0,0) scale(1)}to{transform:translate3d(4vmax,3vmax,0) scale(1.14)}}
+@keyframes aurB{from{transform:translate3d(3vmax,0,0) scale(1.1)}to{transform:translate3d(-4vmax,-2vmax,0) scale(1)}}
+/* شهب نادرة ورقيقة */
+#s4 .met{position:absolute;left:-6%;width:150px;height:1px;opacity:0;transform:rotate(-24deg);border-radius:1px;
+  background:linear-gradient(90deg,transparent,rgba(205,230,255,.9))}
+#s4 .met.a{top:14%;animation:met 9.5s linear infinite;animation-delay:5s}
+#s4 .met.b{top:44%;animation:met 13s linear infinite;animation-delay:12s}
+@keyframes met{0%{transform:translateX(0) translateY(0) rotate(-24deg);opacity:0}
+  2.2%{opacity:.9}10%{transform:translateX(58vw) translateY(24vh) rotate(-24deg);opacity:0}100%{opacity:0}}
+/* أقواس مدارية بالكاد مرئية */
+#s4 .orbs{position:absolute;inset:0}
+#s4 .orbs svg{display:block;width:100%;height:100%}
+/* --- هيكل المحتوى --- */
+#s4 .stack{position:relative;z-index:1;width:100%;min-height:100%}
+#s4 .zone{position:relative;width:100%;display:flex;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 12vh) 18px calc(env(safe-area-inset-bottom,0px) + 14vh)}
+#s4 .zone::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 96% 74% at 50% 58%,var(--tz,rgba(24,60,140,.12)),transparent 70%)}
+#s4 .zin{position:relative;width:100%;max-width:920px;margin:0 auto}
+#s4 .zone.rvl{opacity:0;transform:translateY(26px);
+  transition:opacity .9s ease,transform .9s cubic-bezier(.16,.8,.28,1)}
+#s4 .zone.rvl.in{opacity:1;transform:none}
+.hero,.foc,.guest,.note,.fin{min-height:100vh;min-height:100svh}
+/* --- ألقاب الأقسام --- */
+.eyebrow{display:flex;align-items:center;gap:12px;justify-content:center;
+  font-family:'Orbitron','Cairo',sans-serif;letter-spacing:.22em;font-size:clamp(10px,2.6vw,12px);
+  color:var(--cosmic-cyan);direction:ltr;opacity:.92}
+.eyebrow::before,.eyebrow::after{content:"";flex:0 0 34px;height:1px;background:linear-gradient(90deg,transparent,rgba(105,231,255,.5))}
+.eyebrow.ar{font-family:'Cairo',sans-serif;direction:rtl;letter-spacing:0;font-weight:800;
+  font-size:clamp(17px,4.6vw,22px);color:#e9f1ff;opacity:1}
+.eyebrow.ar::before,.eyebrow.ar::after{flex:0 0 clamp(20px,8vw,52px);background:linear-gradient(90deg,transparent,rgba(244,201,107,.55))}
+/* ==========================================================
+   الأرض من مدار — البطل
+   ========================================================== */
+.hero{--tz:rgba(28,56,130,.17);overflow:hidden;text-align:center}
+.earth-orb{position:absolute;left:-9vmin;bottom:-13vmin;width:min(62vmax,480px);opacity:.62;pointer-events:none;
+  filter:drop-shadow(0 0 30px rgba(70,160,255,.3))}
+.earth-orb svg{display:block;width:100%;height:auto;overflow:visible}
+.hero .zin{position:relative;z-index:2;padding-top:2vh}
+.hero-logos{display:flex;justify-content:center;gap:clamp(20px,6vw,32px);margin-bottom:24px}
+.hero-logos img{width:clamp(54px,15vw,80px);height:auto;opacity:.94;filter:drop-shadow(0 0 12px rgba(120,180,255,.22))}
+.hero h1{margin:14px 0 0;font-weight:900;font-size:clamp(34px,9.5vw,60px);line-height:1.3;
+  background:linear-gradient(180deg,#f4fbff,#cfe2ff 55%,#9d7cff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 20px rgba(140,170,255,.22))}
+.hero .fac{margin-top:10px;font-size:clamp(17px,4.6vw,24px);font-weight:800;color:#fff}
+.hero .prog{margin-top:4px;font-size:clamp(14px,3.8vw,17px);font-weight:700;color:var(--cosmic-cyan)}
+.hero .uni{margin-top:4px;font-size:clamp(13px,3.4vw,15px);color:var(--muted)}
+.hero .dt{display:inline-flex;align-items:center;margin-top:20px;padding:10px 24px;text-align:center;
+  border-block:1px solid rgba(244,201,107,.42);color:var(--stellar-gold);
+  font-weight:800;font-size:clamp(14.5px,4vw,18px);line-height:1.9}
+/* --- عدّاد المهمة --- */
+.cd{margin-top:28px;text-align:center}
+.cd-cap{font-family:'Orbitron',sans-serif;font-size:10.5px;letter-spacing:.34em;color:rgba(159,176,230,.8);direction:ltr}
+.cd-row{display:flex;align-items:center;justify-content:center;gap:clamp(10px,3vw,20px);margin-top:12px}
+.cd-cell{display:flex;flex-direction:column;align-items:center;gap:5px}
+.cd-cell b{font-family:'Orbitron',sans-serif;font-size:clamp(34px,10.5vw,58px);font-weight:700;line-height:1;
+  color:var(--cosmic-cyan);text-shadow:0 0 20px rgba(105,231,255,.4);font-variant-numeric:tabular-nums}
+.cd-cell em{font-style:normal;font-size:clamp(12px,3.2vw,14px);color:var(--muted)}
+.cd-t{font-family:'Orbitron',sans-serif;font-style:normal;font-size:clamp(18px,5vw,28px);font-weight:700;
+  color:var(--stellar-gold);text-shadow:0 0 12px rgba(244,201,107,.45)}
+.cd-col{font-family:'Orbitron',sans-serif;font-style:normal;font-weight:700;font-size:clamp(20px,6vw,32px);
+  color:rgba(105,231,255,.45);align-self:center}
+/* ==========================================================
+   برعاية كريمة — نص فقط (بدون صورة)
+   ========================================================== */
+.foc{--tz:rgba(64,46,140,.16)}
+.foc-flex{display:flex;flex-direction:column;align-items:center;margin-top:clamp(26px,6vh,44px)}
+.foc .name{display:grid;justify-items:center;gap:7px;text-align:center}
+.foc .name::before{content:"";width:54px;height:2px;margin-bottom:14px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--cosmic-cyan),transparent);box-shadow:0 0 12px rgba(105,231,255,.55)}
+.foc .name h2{margin:0;font-size:clamp(24px,7vw,34px);font-weight:900;color:#fff}
+.foc .name .role{color:var(--stellar-gold);font-weight:800;font-size:clamp(15px,4vw,18px)}
+.foc .name .coord{font-family:'Orbitron','Cairo',sans-serif;font-size:10.5px;letter-spacing:.18em;color:var(--muted);direction:ltr;margin-top:6px;opacity:.85}
+/* ==========================================================
+   تحت إشراف — ثلاثة أسماء
+   ========================================================== */
+.super{--tz:rgba(56,38,126,.15)}
+.scon{position:relative;margin-top:clamp(34px,7vh,58px)}
+.sgrid{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,4vw,44px)}
+.snode{position:relative;text-align:center;display:grid;justify-items:center;align-content:start;gap:9px;margin:0;padding-top:20px}
+.snode::before{content:"";position:absolute;top:0;left:50%;width:46px;height:2px;transform:translateX(-50%);border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--aurora-violet),transparent);box-shadow:0 0 12px rgba(157,124,255,.55)}
+.snode b{font-size:clamp(15px,3.9vw,17px);line-height:1.5}
+.snode em{font-style:normal;color:var(--muted);font-size:13px;line-height:1.75;max-width:240px}
+/* ==========================================================
+   السادة الضيوف — نص فقط (بدون صورة)
+   ========================================================== */
+.guest{--tz:rgba(28,84,140,.14)}
+.grow{display:grid;justify-items:center;text-align:center}
+.g-txt{min-width:0;display:grid;gap:8px;justify-items:center;text-align:center}
+.g-txt h3{margin:8px 0 0;font-size:clamp(23px,6.2vw,32px);font-weight:900;color:#fff}
+.g-txt .role{color:var(--stellar-gold);font-weight:800;font-size:clamp(15px,4vw,17.5px)}
+.g-txt .coord{font-family:'Orbitron','Cairo',sans-serif;letter-spacing:.16em;font-size:10.5px;color:var(--muted);direction:ltr}
+/* ==========================================================
+   أعضاء هيئة التدريس — عبارة خفيفة
+   ========================================================== */
+.note{--tz:rgba(86,56,140,.1)}
+.nquote{display:flex;align-items:center;gap:16px;justify-content:center;margin-top:16px}
+.nquote::before,.nquote::after{content:"";flex:0 0 clamp(30px,10vw,70px);height:1px;
+  background:linear-gradient(90deg,rgba(244,201,107,.5),rgba(244,201,107,.06))}
+.nquote p{margin:0;color:#cfe0ff;font-weight:800;font-size:clamp(15px,4vw,19px);line-height:1.9;text-align:center}
+/* ==========================================================
+   الفقرة الثقافية الترفيهية
+   ========================================================== */
+.cult{--tz:rgba(36,86,158,.16)}
+.cult-lead{margin:16px auto 0;max-width:520px;text-align:center;color:#cfe0ff;font-weight:700;font-size:clamp(14.5px,3.9vw,17.5px);line-height:2}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,3vw,20px);margin-top:clamp(26px,6vh,42px)}
+.cc{--c:#69e7ff;--cr:105,231,255;position:relative;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center;
+  padding:20px 20px 20px 18px;text-align:start;
+  background:linear-gradient(160deg,rgba(16,28,72,.7),rgba(7,11,32,.62));
+  border:1px solid rgba(var(--cr),.38);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  box-shadow:inset 0 0 26px rgba(var(--cr),.1)}
+.cc::before{content:"";position:absolute;inset-inline-start:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--c);box-shadow:0 0 12px var(--c)}
+.cc .ci{grid-row:1/3;display:grid;place-items:center;width:clamp(50px,13vw,60px);aspect-ratio:1;border-radius:50%;font-size:clamp(24px,6.4vw,30px);
+  background:radial-gradient(circle at 35% 30%,rgba(var(--cr),.34),#060a1c 72%);
+  border:1px solid rgba(var(--cr),.55)}
+.cc b{align-self:end;font-size:clamp(16px,4.2vw,19px);line-height:1.5;color:#fff}
+.cc p{align-self:start;margin:0;color:#c3cdf0;font-size:clamp(13px,3.5vw,15px);line-height:1.8}
+/* ==========================================================
+   الختام — القائم بالعمل ← نجمة تنفجر ← The End
+   ========================================================== */
+.fin{--tz:rgba(78,38,144,.17);text-align:center;overflow:hidden}
+.fin .zin{position:relative}
+.fring{position:absolute;top:50%;left:50%;width:min(78vmax,690px);aspect-ratio:1;
+  transform:translate(-50%,-50%);border:1px solid rgba(157,124,255,.14);border-radius:50%;pointer-events:none}
+.fring::before{content:"";position:absolute;inset:46px;border:1px dashed rgba(105,231,255,.16);border-radius:50%}
+.fring::after{content:"";position:absolute;inset:92px;border:1px solid rgba(105,231,255,.09);border-radius:50%}
+.fin-stage{position:relative;height:clamp(440px,68svh,600px);display:grid;place-items:center}
+.fin-stage>*{grid-area:1/1}
+.fin-stage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+.fin-stage.boom{animation:stageBoom .7s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes stageBoom{10%,90%{transform:translate(-3px,1px)}20%,80%{transform:translate(6px,-3px)}30%,50%,70%{transform:translate(-9px,4px)}40%,60%{transform:translate(9px,-4px)}}
+/* --- القائم بالعمل --- */
+.cr{display:grid;justify-items:center;gap:8px;opacity:0;visibility:hidden;transition:opacity .7s ease,transform .9s ease,visibility .7s}
+.cr.on{opacity:1;visibility:visible}
+.cr.out{opacity:0;transform:translateY(-46px) scale(.92)}
+.cr-cap{font-family:'Orbitron',sans-serif;font-size:10.5px;letter-spacing:.34em;color:rgba(105,231,255,.72);direction:ltr}
+.cr h2{margin:2px 0 0;font-weight:900;font-size:clamp(28px,8vw,44px);line-height:1.3;
+  background:linear-gradient(90deg,#ffe9a8,#ffc75a 50%,#ff9d6b);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 16px rgba(255,190,90,.35))}
+.cr ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px;justify-items:center}
+.cr li{display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font-weight:800;font-size:clamp(20px,5.6vw,27px);
+  opacity:0;transform:translateX(var(--fx,60px)) scale(.86)}
+.cr li.in{opacity:1;transform:none;transition:opacity .5s ease,transform .8s cubic-bezier(.2,1.5,.4,1)}
+.cr li i{font-style:normal;font-size:1.05em;display:inline-block}
+.cr li.in i{animation:crSpin .9s cubic-bezier(.2,1.4,.4,1)}
+@keyframes crSpin{from{transform:rotate(-200deg) scale(.2)}to{transform:none}}
+/* --- النجمة --- */
+.stw{display:grid;justify-items:center;gap:8px;opacity:0;visibility:hidden;transition:opacity .5s}
+.stw.on{opacity:1;visibility:visible}
+.stbox{transform:scale(0);transition:transform .9s cubic-bezier(.2,1.6,.4,1);filter:drop-shadow(0 0 20px rgba(255,205,90,.75))}
+.stw.on .stbox{transform:scale(1)}
+.stbox svg{display:block;width:clamp(120px,32vw,180px);height:auto;overflow:visible;animation:starIdle 2.4s ease-in-out infinite}
+@keyframes starIdle{50%{transform:rotate(6deg) scale(1.04)}}
+.stw .mw,.stw .sweat{display:none}
+.stw.charge .ms,.stw.charge .mo{display:none}
+.stw.charge .mw,.stw.charge .sweat{display:block}
+.stw.charge .eye{transform-box:fill-box;transform-origin:center;transform:scale(1.5)}
+.stw.charge .stbox{animation:heat 2.9s ease-in forwards}
+.stw.charge .stbox svg{animation:rumble .1s linear infinite}
+@keyframes heat{from{transform:scale(1);filter:drop-shadow(0 0 20px rgba(255,205,90,.75)) brightness(1)}
+  to{transform:scale(1.55);filter:drop-shadow(0 0 46px rgba(255,255,255,.95)) brightness(1.9) saturate(1.3)}}
+@keyframes rumble{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,2px) rotate(-3deg)}50%{transform:translate(3px,-2px) rotate(3deg)}75%{transform:translate(-2px,-3px) rotate(-2deg)}100%{transform:translate(0,0)}}
+.stw.pop .stbox{animation:popOut .28s ease-out forwards}
+@keyframes popOut{to{transform:scale(3.4);opacity:0;filter:brightness(4)}}
+.stw.pop .fin-warn{animation:none;opacity:0}
+.stw.pop .fin-cnt{opacity:0}
+.fin-cnt{height:1.15em;font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(38px,11vw,60px);color:#fff;
+  text-shadow:0 0 20px rgba(255,200,90,.9);line-height:1;direction:ltr}
+.fin-cnt.tick{animation:tick .9s ease-out}
+@keyframes tick{from{transform:scale(2.2);opacity:0}25%{opacity:1}to{transform:scale(1)}}
+.fin-warn{min-height:2.2em;font-weight:800;font-size:clamp(13.5px,3.7vw,16.5px);line-height:1.9;color:#ffd98a;opacity:0;transition:opacity .4s}
+.fin-warn.on{opacity:1;animation:warnBlink .7s steps(2) infinite}
+@keyframes warnBlink{50%{opacity:.35}}
+/* --- The End --- */
+.theend{display:grid;justify-items:center;gap:12px;opacity:0;visibility:hidden;z-index:3}
+.theend.on{opacity:1;visibility:visible}
+.theend h2{margin:0;display:flex;justify-content:center;direction:ltr;font-family:'Orbitron',sans-serif;font-weight:900;
+  font-size:clamp(50px,16vw,112px);line-height:1.1;letter-spacing:.05em;color:#fff;
+  text-shadow:0 0 14px rgba(255,214,120,.95),0 0 40px rgba(255,150,70,.7),0 0 80px rgba(157,124,255,.55)}
+.theend h2 span{display:inline-block;opacity:0;transform:translateY(-70px) scale(1.7) rotate(-14deg)}
+.theend.on h2 span{animation:letIn .8s cubic-bezier(.2,1.6,.4,1) forwards;animation-delay:calc(var(--k)*95ms)}
+.theend.on h2{animation:endGlow 2.6s ease-in-out 1.2s infinite alternate}
+@keyframes letIn{to{opacity:1;transform:none}}
+@keyframes endGlow{to{text-shadow:0 0 22px rgba(255,236,170,1),0 0 56px rgba(255,150,70,.85),0 0 100px rgba(157,124,255,.7)}}
+.fin .theend p{margin:0;opacity:0;font-weight:800;font-size:clamp(15px,4.2vw,20px);color:#dfe9ff;transition:opacity 1s ease .9s}
+.theend.on p{opacity:1}
+.fin-replay{margin-top:6px;font-weight:800;font-size:14px;padding:.5em 1.3em;border-radius:10px;cursor:pointer;
+  border:1px solid rgba(105,231,255,.5);background:rgba(10,20,52,.6);color:var(--ink);opacity:0;visibility:hidden;transition:opacity .6s ease 1.6s,visibility .6s ease 1.6s}
+.theend.on .fin-replay{opacity:1;visibility:visible}
+.fin-replay:hover{border-color:var(--gold)}
+/* --- ذيل الصفحة (الشعارات والنص الرسمي) --- */
+.fin-foot{position:relative;margin-top:clamp(10px,3vh,28px);opacity:0;transition:opacity 1.4s ease}
+.fin-foot.on{opacity:1}
+.f-logos{display:flex;justify-content:center;gap:24px;margin-bottom:22px;position:relative}
+.f-logos img{width:clamp(52px,15vw,74px);height:auto;opacity:.9;filter:drop-shadow(0 0 10px rgba(120,180,255,.2))}
+.fin-foot p{margin:0;position:relative;font-weight:800;font-size:clamp(14px,3.9vw,18px);line-height:2.1;color:#e8f0ff}
+.fin .en{margin-top:14px;font-family:'Orbitron',sans-serif;font-size:10.5px;letter-spacing:.2em;color:var(--muted);direction:ltr}
+.fin .fin-cap{margin-top:26px;font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.34em;color:rgba(105,231,255,.62);direction:ltr}
+/* ==========================================================
+   الجوال
+   ========================================================== */
+@media (max-width:640px){
+  #s4 .zone{padding-block:calc(env(safe-area-inset-top,0px) + 13vh) calc(env(safe-area-inset-bottom,0px) + 15vh)}
+  #s4 .hero .earth-orb{width:min(80vmax,300px);opacity:.4;left:-14vmin;bottom:-9vmin}
+  #s4 .hero .dt{padding:9px 16px}
+  .sgrid{grid-template-columns:1fr;gap:34px}
+  .cgrid{grid-template-columns:1fr}
+}
+@media (max-width:420px){#phaseMap .mh.top span:nth-child(2){display:none}}
+
+/* ---------- misc ---------- */
+#flash{position:fixed;inset:0;z-index:38;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.9) 0,rgba(170,235,255,.55) 40%,rgba(80,150,255,.25) 75%,transparent 100%);opacity:0;transition:opacity .4s}
+#flash.on{opacity:1}
+#music{position:fixed;z-index:45;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);height:46px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:rgba(8,13,40,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 18px rgba(40,70,180,.3)}
+#music:hover{border-color:var(--accent)}
+#mwrap{display:none}
+
+@media (prefers-reduced-motion:reduce){
+  .sign,.go-btn,.ship.ready,.door.ready,.landscroll,.earth.pulse{animation:none}
+  #astro .flame,.ship .jet,#astro.walk svg,#astro.landed svg,
+  .orbit,.earth .cl,.earth.pulse,.hud .dot,.door .warn.l,.door .warn.r,.ship .warn,
+  #trailPath.drawn,.plaque,.door.ready,.hBuilding,.blade{animation:none!important;transition:none!important}
+  .scene{transition:opacity .3s ease,visibility .3s,transform 0s}
+  #s4 .aur,#s4 .aur2,#s4 .met,#s4 .stz i{animation:none!important}
+  #s4 .stz i{opacity:.35}
+  #s4 .zone.rvl{opacity:1;transform:none!important;transition:none!important}
+  #s4 .fin *{animation:none!important;transition:none!important}
+  #s4 .theend h2 span,#s4 .cr li{opacity:1!important;transform:none!important}
+  #s4 .stbox{transform:scale(1)!important}
+  .gm-score.bump b{animation:none}
+}
+
+/* ==========================================================
+   المشهد ٥: لعبة «جمع النجوم» قبل حفل الاستقبال
+   ========================================================== */
+body[data-scene="5"] .hud{opacity:0}
+body[data-scene="5"] .grd{opacity:.3}
+#gameCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none}
+.gm-hud{position:absolute;left:0;right:0;top:0;z-index:3;display:grid;gap:8px;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 0;opacity:0;transition:opacity .4s}
+.gm-hud.on{opacity:1}
+.gm-row{display:flex;align-items:center;gap:14px}
+.gm-score{display:flex;align-items:baseline;gap:6px;direction:ltr;min-width:92px;font-family:'Orbitron',sans-serif;color:var(--gold)}
+.gm-score b{font-size:clamp(22px,6vw,30px);font-weight:900;color:#fff;text-shadow:0 0 12px rgba(255,207,107,.6)}
+.gm-score em{font-style:normal;font-size:13px;color:var(--muted)}
+.gm-bar{flex:1;height:9px;border-radius:9px;background:rgba(110,231,255,.12);border:1px solid rgba(110,231,255,.32);overflow:hidden}
+.gm-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--gold));box-shadow:0 0 12px var(--accent);transition:width .25s ease}
+.gm-lives{min-width:88px;text-align:end;white-space:nowrap;font-size:clamp(18px,5vw,24px);letter-spacing:2px}
+.gm-tt{flex:1;color:var(--muted);font-weight:700;font-size:clamp(12px,3.2vw,14px)}
+.gm-skip{pointer-events:auto;cursor:pointer;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700;
+  border:1px solid rgba(159,176,230,.3);background:rgba(8,13,40,.5);color:var(--muted)}
+.gm-skip:hover{color:var(--ink);border-color:var(--accent)}
+.gm-score.bump b{animation:bump .3s ease-out}
+@keyframes bump{40%{transform:scale(1.35)}}
+
+.gm-ov{position:absolute;inset:0;z-index:6;display:grid;place-items:center;padding:18px;
+  background:rgba(2,5,14,.62);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s}
+.gm-ov.show{opacity:1;visibility:visible}
+.gm-panel{position:relative;width:min(92vw,440px);padding:28px 22px 24px;text-align:center;color:var(--ink);
+  background:linear-gradient(160deg,#0a1230,#050917);border:1px solid rgba(110,231,255,.6);
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  box-shadow:0 0 40px rgba(70,140,255,.35),inset 0 0 30px rgba(110,231,255,.08);
+  transform:translateY(14px) scale(.95);transition:transform .45s cubic-bezier(.2,1.2,.3,1)}
+.gm-ov.show .gm-panel{transform:none}
+.gm-sys{font-family:'Orbitron',sans-serif;letter-spacing:.3em;font-size:11.5px;color:var(--accent);direction:ltr;text-shadow:0 0 10px var(--accent)}
+.gm-panel h2{margin:12px 0 0;font-weight:900;font-size:clamp(24px,7vw,32px);line-height:1.4;color:#f2f8ff}
+.gm-panel p{margin:8px 0 0;font-size:clamp(14.5px,3.9vw,16.5px);line-height:2;color:#d8e2ff}
+.gm-how{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;text-align:start}
+.gm-how li{display:flex;gap:12px;align-items:center;padding:9px 12px;border-radius:10px;font-size:clamp(14px,3.8vw,16px);line-height:1.7;
+  background:rgba(60,100,220,.12);border:1px solid rgba(110,231,255,.18)}
+.gm-how li i{font-style:normal;font-size:1.35em;flex:0 0 auto}
+.gm-btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
+.gm-btn{font-weight:900;font-size:clamp(15px,4.2vw,18px);padding:.6em 1.5em;border-radius:12px;cursor:pointer;color:var(--ink);
+  border:1px solid rgba(110,231,255,.75);background:linear-gradient(135deg,rgba(60,120,255,.45),rgba(130,90,255,.45));box-shadow:0 0 20px rgba(90,150,255,.4)}
+.gm-btn:active{transform:scale(.96)}
+.gm-btn.ghost{font-weight:700;background:transparent;box-shadow:none;border-color:rgba(159,176,230,.42);color:var(--muted)}
+#gmEnd.win .only-lose,#gmEnd.lose .only-win{display:none}
+#gmEnd .big{font-size:clamp(46px,14vw,64px);line-height:1.1;margin-top:6px}
+</style>
+</head>
+<body data-scene="1">
+
+<canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="grd" aria-hidden="true"></div>
+
+<!-- إطار HUD التقني الثابت -->
+<div class="hud" aria-hidden="true">
+  <span class="corner c1"></span><span class="corner c2"></span>
+  <span class="corner c3"></span><span class="corner c4"></span>
+  <div class="st tl">SYSTEM: NSST-NAV<span class="dot"></span></div>
+  <div class="st tr">STATUS: ONLINE</div>
+  <div class="st bl"><span class="lbl">LAT</span> 29.0701°N &nbsp;<span class="lbl">LON</span> 31.0989°E</div>
+  <div class="st br"><span class="lbl">ALT</span> 34.2m &nbsp;·&nbsp; <span class="lbl">MODE</span> AUTO</div>
+</div>
+
+<!-- الرائد (رائد الفضاء) -->
+<div id="astro" aria-hidden="true">
+<svg viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c3cce4"/></linearGradient>
+    <radialGradient id="visor" cx=".35" cy=".3" r=".95"><stop offset="0" stop-color="#7fdcff"/><stop offset=".45" stop-color="#1d3d8f"/><stop offset="1" stop-color="#080f2e"/></radialGradient>
+    <linearGradient id="flameg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".4" stop-color="#ffb347"/><stop offset="1" stop-color="#ff5a3c" stop-opacity="0"/></linearGradient>
+  </defs>
+  <g class="flame">
+    <path d="M42 116 Q50 150 42 178 Q34 150 42 116Z" fill="url(#flameg)"/>
+    <path d="M78 116 Q86 150 78 178 Q70 150 78 116Z" fill="url(#flameg)"/>
+  </g>
+  <rect x="26" y="50" width="68" height="68" rx="14" fill="#a9b4d2" stroke="#7d8aae" stroke-width="1.5"/>
+  <rect x="34" y="108" width="16" height="12" rx="3" fill="#5c6a90"/>
+  <rect x="70" y="108" width="16" height="12" rx="3" fill="#5c6a90"/>
+  <g stroke-linecap="round" fill="none">
+    <path d="M50 114 L45 148" stroke="#8d9ab8" stroke-width="20"/>
+    <path d="M50 114 L45 148" stroke="#eef1f9" stroke-width="17"/>
+    <path d="M70 114 L77 146" stroke="#8d9ab8" stroke-width="20"/>
+    <path d="M70 114 L77 146" stroke="#eef1f9" stroke-width="17"/>
+  </g>
+  <ellipse cx="44" cy="153" rx="13" ry="8.5" fill="#46527a" stroke="#2b3556" stroke-width="1.5"/>
+  <ellipse cx="78" cy="151" rx="13" ry="8.5" fill="#46527a" stroke="#2b3556" stroke-width="1.5"/>
+  <rect x="34" y="146" width="20" height="4" rx="2" fill="#ff8a3d"/>
+  <rect x="67" y="144" width="20" height="4" rx="2" fill="#ff8a3d"/>
+  <rect x="34" y="54" width="52" height="66" rx="18" fill="url(#suit)" stroke="#8d9ab8" stroke-width="1.5"/>
+  <rect x="35" y="104" width="50" height="7" rx="3.5" fill="#46527a"/>
+  <rect x="46" y="70" width="28" height="22" rx="5" fill="#1f2b5a" stroke="#0e1636"/>
+  <circle cx="52" cy="77" r="2.6" fill="#ff5a5a"/><circle cx="60" cy="77" r="2.6" fill="#5aff9c"/><circle cx="68" cy="77" r="2.6" fill="#6ee7ff"/>
+  <rect x="50" y="84" width="20" height="3" rx="1.5" fill="#6ee7ff" opacity=".8"/>
+  <circle cx="42" cy="98" r="5.5" fill="#2a55d1" stroke="#fff" stroke-width="1.5"/>
+  <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M38 66 Q22 74 15 94" stroke="#8d9ab8" stroke-width="19"/>
+    <path d="M38 66 Q22 74 15 94" stroke="#eef1f9" stroke-width="16"/>
+    <path d="M82 66 Q100 68 108 84" stroke="#8d9ab8" stroke-width="19"/>
+    <path d="M82 66 Q100 68 108 84" stroke="#eef1f9" stroke-width="16"/>
+  </g>
+  <circle cx="14" cy="98" r="9" fill="#46527a" stroke="#2b3556" stroke-width="1.5"/>
+  <circle cx="109" cy="88" r="9" fill="#46527a" stroke="#2b3556" stroke-width="1.5"/>
+  <rect x="44" y="55" width="32" height="9" rx="4.5" fill="#46527a"/>
+  <circle cx="60" cy="34" r="28" fill="#f6f8fd" stroke="#8d9ab8" stroke-width="1.5"/>
+  <ellipse cx="60" cy="36" rx="20" ry="17" fill="url(#visor)" stroke="#0a1233" stroke-width="2"/>
+  <ellipse cx="52" cy="29" rx="7.5" ry="4" fill="#fff" opacity=".55" transform="rotate(-28 52 29)"/>
+  <circle cx="89" cy="30" r="2.6" fill="#6ee7ff"/>
+</svg>
+</div>
+
+<!-- ===================== المشهد ١ ===================== -->
+<section class="scene active" id="s1">
+  <div class="hero">
+    <small>ORIENTATION DAY AT NSST</small>
+    <h1>حفل الاستقبال</h1>
+  </div>
+
+  <!-- ------- مرحلة الفضاء: هبوط الصاروخ ------- -->
+  <div class="phase show" id="phaseSpace">
+    <!-- الكوكب (الأرض) مع مدارات -->
+    <div class="gate" id="gate" aria-label="كوكب الأرض — منطقة الهبوط">
+      <div class="earth" id="earth">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="eg" cx=".38" cy=".34" r=".9"><stop offset="0" stop-color="#5fc3ff"/><stop offset=".5" stop-color="#1c58c9"/><stop offset="1" stop-color="#071a52"/></radialGradient>
+            <radialGradient id="es" cx=".75" cy=".7" r=".85"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#020820" stop-opacity=".8"/></radialGradient>
+            <linearGradient id="atmos" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6ee7ff" stop-opacity=".5"/><stop offset="1" stop-color="#2d63c9" stop-opacity="0"/></linearGradient>
+            <clipPath id="ec"><circle cx="100" cy="100" r="98"/></clipPath>
+          </defs>
+          <!-- توهج الغلاف الجوي -->
+          <circle cx="100" cy="100" r="104" fill="none" stroke="url(#atmos)" stroke-width="10" opacity=".6"/>
+          <!-- مدارين إهليلجيين -->
+          <ellipse class="orbit o1" cx="100" cy="100" rx="128" ry="44" transform="rotate(-24 100 100)"/>
+          <ellipse class="orbit o2" cx="100" cy="100" rx="150" ry="30" transform="rotate(18 100 100)"/>
+          <circle cx="100" cy="100" r="98" fill="url(#eg)"/>
+          <g clip-path="url(#ec)">
+            <!-- قارات -->
+            <g fill="#4f9a54" stroke="#8fd27f" stroke-width=".6">
+              <path d="M30 60 q14 -12 30 -2 q10 8 4 18 q-5 10 3 22 q-10 14 -24 6 q-16 -12 -13 -44z"/>
+              <path d="M118 50 q18 -10 34 2 q10 10 2 20 q-12 6 -22 -2 q-12 -8 -14 -20z"/>
+              <path d="M96 118 q12 -6 22 2 q6 10 -4 16 q-12 4 -16 -8 q0 -8 -2 -10z"/>
+              <path d="M136 96 q10 -6 20 0 q8 8 0 16 q-10 6 -18 0 q-6 -10 -2 -16z"/>
+            </g>
+            <!-- قمم جليدية -->
+            <ellipse cx="70" cy="18" rx="40" ry="9" fill="#e8f6ff" opacity=".5"/>
+            <ellipse cx="150" cy="190" rx="36" ry="8" fill="#e8f6ff" opacity=".45"/>
+            <!-- غيوم متحركة -->
+            <g class="cl" fill="#ffffff" opacity=".34">
+              <ellipse cx="40" cy="56" rx="34" ry="9"/>
+              <ellipse cx="120" cy="90" rx="40" ry="10"/>
+              <ellipse cx="60" cy="132" rx="30" ry="8"/>
+              <ellipse cx="150" cy="140" rx="26" ry="7"/>
+              <ellipse cx="150" cy="60" rx="22" ry="6"/>
+              <use href="#cl1" x="200"/>
+            </g>
+            <g id="cl1" fill="#ffffff" opacity=".3">
+              <ellipse cx="0" cy="170" rx="36" ry="9"/>
+            </g>
+          </g>
+          <circle cx="100" cy="100" r="98" fill="url(#es)"/>
+        </svg>
+      </div>
+      <div class="g-label">LZ-1 · LOW ORBIT · EARTH</div>
+    </div>
+
+    <!-- الصاروخ (المركبة H) -->
+    <button class="ship" id="ship" aria-label="صاروخ الهبوط — المركبة H" type="button">
+      <span class="glow-spot"></span>
+      <svg viewBox="0 0 120 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rbody" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b97b8"/><stop offset=".45" stop-color="#e8eefb"/><stop offset="1" stop-color="#7d89ac"/></linearGradient>
+          <linearGradient id="rnose" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5a5a"/><stop offset=".6" stop-color="#ff8470"/><stop offset="1" stop-color="#c93b3b"/></linearGradient>
+          <radialGradient id="rwind" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#aef0ff"/><stop offset=".6" stop-color="#1d4aa8"/><stop offset="1" stop-color="#081033"/></radialGradient>
+          <linearGradient id="rjet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".4" stop-color="#ffb347"/><stop offset="1" stop-color="#ff5a3c" stop-opacity="0"/></linearGradient>
+        </defs>
+        <!-- اللهب -->
+        <g class="jet">
+          <path d="M42 238 Q60 258 42 282 Q24 258 42 238Z" fill="url(#rjet)"/>
+          <path d="M78 238 Q96 258 78 282 Q60 258 78 238Z" fill="url(#rjet)"/>
+        </g>
+        <!-- الفوهة -->
+        <path d="M40 216 L80 216 L84 240 L36 240 Z" fill="#39456b" stroke="#20294a" stroke-width="2"/>
+        <!-- الزعانف -->
+        <path d="M40 120 L18 178 L44 168 Z" fill="#39456b" stroke="#232c50" stroke-width="2"/>
+        <path d="M80 120 L102 178 L76 168 Z" fill="#39456b" stroke="#232c50" stroke-width="2"/>
+        <path d="M56 132 L64 132 L72 178 L48 178 Z" fill="#4a567e" stroke="#232c50" stroke-width="2"/>
+        <!-- جسم الصاروخ -->
+        <rect x="34" y="70" width="52" height="150" rx="10" fill="url(#rbody)" stroke="#7b87a9" stroke-width="2"/>
+        <rect x="34" y="70" width="9" height="150" rx="4.5" fill="#ffffff" opacity=".35"/>
+        <!-- الأنف -->
+        <path d="M34 70 Q60 -14 86 70 Z" fill="url(#rnose)"/>
+        <path d="M60 16 L60 48 M52 34 L68 34" stroke="#ffd08a" stroke-width="2" opacity=".8"/>
+        <!-- النافذة -->
+        <circle cx="60" cy="98" r="14" fill="url(#rwind)" stroke="#8fd8ff" stroke-width="2.5"/>
+        <!-- فتحة الخروج -->
+        <g class="flap">
+          <path d="M36 138 L52 138 L52 156 L36 156 Z" fill="#5a6a98" stroke="#d6e2ff" stroke-width="1.5"/>
+          <path d="M84 138 L68 138 L68 156 L84 156 Z" fill="#5a6a98" stroke="#d6e2ff" stroke-width="1.5"/>
+          <line x1="37" y1="147" x2="51" y2="147" stroke="#ffb84d" stroke-width="2.5"/>
+        </g>
+        <circle cx="60" cy="147" r="6" fill="#0a1330" stroke="#ffb84d" stroke-width="2" class="warn"/>
+        <!-- شريط + تسمية -->
+        <rect x="34" y="184" width="52" height="4" fill="#ff5a5a"/>
+        <text x="60" y="206" text-anchor="middle" font-family="Orbitron,Arial,sans-serif" font-weight="700" font-size="11" fill="#dff3ff" letter-spacing="1">NSST-H</text>
+      </svg>
+    </button>
+
+    <div id="startWrap">
+      <button class="go-btn" id="startBtn" type="button">هل أنتم مستعدون للانطلاق!</button>
+      <div class="tagline">EXPLORE · LEARN · INNOVATE</div>
+    </div>
+  </div>
+
+  <!-- ------- مرحلة الحرم: خريطة ملاحية تكتيكية ------- -->
+  <div class="phase phase-map" id="phaseMap" hidden>
+    <div class="mh top"><span>STATUS: ONLINE<b></b></span><span>NAV ▸ BUILDING H</span><span>SCALE 200ft/50m</span></div>
+    <svg class="cmap" viewBox="0 0 1000 1250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-label="خريطة حرم الجامعة">
+      <defs>
+        <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1026"/><stop offset="1" stop-color="#060a1c"/></linearGradient>
+        <pattern id="mgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="rgba(110,190,255,.07)" stroke-width="1"/></pattern>
+        <filter id="soft"><feGaussianBlur stdDeviation="2"/></filter>
+      </defs>
+      <rect x="0" y="0" width="1000" height="1250" fill="url(#ground)"/>
+      <rect x="0" y="0" width="1000" height="1250" fill="url(#mgrid)"/>
+
+      <!-- حدود الحرم -->
+      <rect x="30" y="30" width="940" height="1190" fill="none" stroke="rgba(110,231,255,.18)" stroke-width="3" stroke-dasharray="14 10" rx="24"/>
+      <rect x="46" y="46" width="908" height="1158" fill="none" stroke="rgba(140,170,255,.12)" stroke-width="1" rx="18"/>
+
+      <!-- المساحات الخضراء -->
+      <circle cx="96" cy="180" r="26" fill="#23402f" opacity=".7"/>
+      <circle cx="900" cy="300" r="22" fill="#23402f" opacity=".7"/>
+      <circle cx="140" cy="720" r="24" fill="#23402f" opacity=".7"/>
+      <circle cx="880" cy="1060" r="28" fill="#23402f" opacity=".7"/>
+      <rect x="70" y="600" width="200" height="40" rx="20" fill="#23402f" opacity=".6"/>
+
+      <!-- الطرق -->
+      <path d="M500 150 L500 420" stroke="#151d36" stroke-width="86" stroke-linecap="round" fill="none"/>
+      <path d="M500 150 L500 420" stroke="#f6e7b0" stroke-width="1" stroke-linecap="round" stroke-dasharray="20 26" opacity=".3" fill="none"/>
+      <circle cx="500" cy="470" r="98" fill="#151d36"/>
+      <circle cx="500" cy="470" r="92" fill="#101a38" stroke="#151d36" stroke-width="6"/>
+      <circle cx="500" cy="470" r="44" fill="#1c3a2c" stroke="#9fd8a0" stroke-width="2" opacity=".9"/>
+      <path d="M470 470 A30 30 0 0 1 530 470" stroke="#9fd8a0" stroke-width="1.5" fill="none" opacity=".5"/>
+      <path d="M500 568 L500 820" stroke="#151d36" stroke-width="92" stroke-linecap="round" fill="none"/>
+      <path d="M500 568 L500 820" stroke="#f6e7b0" stroke-width="1" stroke-dasharray="20 26" opacity=".35"/>
+      <path d="M600 470 L760 470" stroke="#151d36" stroke-width="80" stroke-linecap="round" fill="none"/>
+      <path d="M600 470 L760 470" stroke="#f6e7b0" stroke-width="1" stroke-dasharray="20 26" opacity=".32"/>
+
+      <!-- مبنى مشروع البشمهندس أحمد نجم (شمال الدوار) -->
+      <g>
+        <rect x="406" y="196" width="188" height="128" rx="8" fill="#333c50" stroke="#4c5a78" stroke-width="2"/>
+        <line x1="406" y1="236" x2="594" y2="236" stroke="#4c5a78" stroke-width="1.5"/>
+        <line x1="406" y1="276" x2="594" y2="276" stroke="#4c5a78" stroke-width="1.5"/>
+        <rect x="496" y="300" width="8" height="24" fill="#0a1026"/>
+        <text x="500" y="232" text-anchor="middle" class="bname" style="font-size:15px"></text>
+        <text x="500" y="270" text-anchor="middle" class="bsub" style="font-size:13.5px"></text>
+      </g>
+
+      <!-- المبنى F -->
+      <g>
+        <rect x="216" y="330" width="210" height="126" rx="8" fill="#4a4438" stroke="#6b6150" stroke-width="2"/>
+        <line x1="216" y1="384" x2="426" y2="384" stroke="#6b6150" stroke-width="1.5"/>
+        <rect x="426" y="420" width="10" height="36" fill="#0a1026"/>
+        <text x="321" y="366" text-anchor="middle" class="bname" style="font-size:16px">BUILDING F</text>
+        <text x="321" y="406" text-anchor="middle" class="bsub" style="font-size:12px">مبنى F</text>
+      </g>
+
+      <!-- المبنى H (الهدف) -->
+      <g class="hBuilding" id="mapH">
+        <rect x="612" y="252" width="196" height="150" rx="8" fill="#3a4150" stroke="#7b8ec0" stroke-width="2"/>
+        <line x1="612" y1="304" x2="808" y2="304" stroke="#7b8ec0" stroke-width="1.5"/>
+        <line x1="612" y1="356" x2="808" y2="356" stroke="#7b8ec0" stroke-width="1.5"/>
+        <rect x="696" y="398" width="12" height="14" fill="#f6e7b0"/>
+        <rect x="640" y="398" width="12" height="14" fill="#f6e7b0"/>
+        <text x="710" y="296" text-anchor="middle" class="bname" style="font-size:17px">BUILDING H</text>
+        <text x="710" y="336" text-anchor="middle" class="bsub" style="font-size:12px">المبنى H — الدور الثاني</text>
+        <rect x="700" y="366" width="22" height="10" rx="3" fill="#ff8a3d"/>
+      </g>
+
+      <!-- كلية علوم الملاحة وتكنولوجيا الفضاء -->
+      <g>
+        <rect x="316" y="760" width="368" height="158" rx="10" fill="#2c3850" stroke="#6ee7ff" stroke-width="2.5"/>
+        <line x1="316" y1="826" x2="684" y2="826" stroke="#4c5a78" stroke-width="1.5"/>
+        <rect x="684" y="890" width="12" height="28" fill="#0a1026"/>
+        <rect x="316" y="890" width="12" height="28" fill="#0a1026"/>
+        <text x="500" y="802" text-anchor="middle" class="bname" style="font-size:16px">FACULTY OF NAV. &amp; SPACE SCI.</text>
+        <text x="500" y="844" text-anchor="middle" class="bsub" style="font-size:13.5px">كلية علوم الملاحة وتكنولوجيا الفضاء</text>
+        <circle cx="500" cy="886" r="12" fill="none" stroke="#6ee7ff" stroke-width="1.5" stroke-dasharray="3 4"/>
+        <rect x="430" y="874" width="140" height="24" rx="4" fill="#0a1026" stroke="#6ee7ff" stroke-width="1"/>
+        <text x="500" y="892" text-anchor="middle" style="font-family:'Cairo';font-size:14px;font-weight:800;fill:#8fe9ff">المدخل الرئيسي</text>
+      </g>
+
+      <!-- دار الضيافة -->
+      <g>
+        <rect x="738" y="798" width="196" height="112" rx="8" fill="#4a4638" stroke="#7a7357" stroke-width="2"/>
+        <rect x="738" y="798" width="196" height="18" rx="8" fill="#5a5544"/>
+        <text x="836" y="838" text-anchor="middle" class="bname" style="font-size:15px">دار الضيافة</text>
+        <text x="836" y="878" text-anchor="middle" class="bsub" style="font-size:11.5px">GUESTHOUSE</text>
+      </g>
+
+      <!-- البوابة الرئيسية -->
+      <g>
+        <rect x="468" y="64" width="64" height="70" fill="none" stroke="#8b95b5" stroke-width="5"/>
+        <rect x="472" y="68" width="14" height="62" fill="#0a1026"/>
+        <rect x="514" y="68" width="14" height="62" fill="#0a1026"/>
+        <path d="M468 70 Q500 40 532 70" fill="none" stroke="#8b95b5" stroke-width="5"/>
+        <circle cx="500" cy="140" r="16" fill="none" stroke="#37ff9c" stroke-width="2.5"/>
+        <circle cx="500" cy="140" r="5" fill="#37ff9c"/>
+        <text x="500" y="182" text-anchor="middle" class="bname" style="font-size:16px">GATE</text>
+        <text x="500" y="206" text-anchor="middle" class="bsub" style="font-size:12px">البوابة الرئيسية</text>
+      </g>
+
+      <!-- المسار المضئ (route) -->
+      <path id="trailPath" d="M500 170 L500 410 L500 470 L660 470 L710 392 L710 402"/>
+
+      <!-- إحداثيات الزوايا -->
+      <text x="70" y="80" style="font-size:11px;fill:#6d7fb0;font-family:'Orbitron'">N 29°04'36"</text>
+      <text x="900" y="80" style="font-size:11px;fill:#6d7fb0;font-family:'Orbitron'">E 31°05'56"</text>
+      <text x="70" y="1216" style="font-size:11px;fill:#6d7fb0;font-family:'Orbitron'">GRID 100/125</text>
+      <text x="880" y="1216" style="font-size:11px;fill:#6d7fb0;font-family:'Orbitron'">SCALE 1:4000</text>
+      <!-- بوصلة -->
+      <g transform="translate(920,1180)">
+        <circle r="30" fill="none" stroke="#6d7fb0" stroke-width="1.5"/>
+        <path d="M0 -22 L6 8 L0 2 L-6 8 Z" fill="#ff8a3d"/>
+        <path d="M0 22 L6 -8 L0 -2 L-6 -8 Z" fill="#6d7fb0"/>
+        <text x="-36" y="-34" style="font-size:12px;fill:#ff8a3d;font-family:'Orbitron'">N</text>
+      </g>
+    </svg>
+
+    <div class="mh bl">LAT 29.0701°N<br>LON 31.0989°E<br>ALT 34.2m</div>
+    <div class="mh br">OWN SHIP: ASTRONAUT-1<br>TGT: BUILDING H / H208<br>STATUS: ONLINE</div>
+  </div>
+</section>
+
+<!-- ===================== المشهد ٢: داخل المبنى H ===================== -->
+<section class="scene" id="s2">
+  <div class="ceil"></div>
+  <div class="wall">
+    <span class="ph" style="left:16%"></span>
+    <span class="ph" style="left:36%"></span>
+    <span class="ph" style="left:58%"></span>
+  </div>
+  <div class="floor"></div>
+  <div class="hatchL" id="hatchL"></div>
+  <div class="sign">
+    <h2>الدور الثاني</h2>
+    <p>SECOND FLOOR</p>
+  </div>
+  <button class="door" id="door" aria-label="البوابة H208 — غرفة العمليات والملاحة">
+    <span class="plaque">H208</span>
+    <span class="hpanel l"><i class="off"></i><i></i><i class="off"></i></span>
+    <span class="hpanel r"><i></i><i></i><i class="off"></i></span>
+    <span class="frame">
+      <span class="warn l"></span><span class="warn r"></span>
+      <span class="light" aria-hidden="true"></span>
+<span class="iris">
+    <span class="blade" style="--a:0deg"></span>
+    <span class="blade" style="--a:45deg"></span>
+    <span class="blade" style="--a:90deg"></span>
+    <span class="blade" style="--a:135deg"></span>
+    <span class="blade" style="--a:180deg"></span>
+    <span class="blade" style="--a:225deg"></span>
+    <span class="blade" style="--a:270deg"></span>
+    <span class="blade" style="--a:315deg"></span>
+  </span>
+    <span class="hint">اضغط للطرق على البوابة 👆</span>
+  </button>
+</section>
+
+<!-- ===================== المشهد ٣: نافذة الترحيب ===================== -->
+<section class="scene" id="s3">
+  <div id="ahlan" role="dialog" aria-modal="true" aria-labelledby="ahlanT">
+    <div class="ov" onclick=""></div>
+    <div class="panel">
+      <div class="sys">SYSTEM: WELCOME</div>
+      <h1 id="ahlanT">أهلاً بكم رواد الفضاء الجدد <span>🚀</span></h1>
+      <p>أهلاً وسهلاً بطلابنا الجدد في كلية علوم الملاحة وتكنولوجيا الفضاء — مرحباً بكم في رحلتكم نحو النجوم</p>
+      <button class="cta" id="toS4" type="button">متابعة ↴</button>
+      <div class="bar"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== المشهد ٤: المحتوى الكامل ===================== -->
+<section class="scene" id="s4">
+  <div class="cz" aria-hidden="true">
+    <div class="stz" id="stz"></div>
+    <div class="aur"></div>
+    <div class="aur2"></div>
+    <div class="met a"></div>
+    <div class="met b"></div>
+    <svg class="orbs" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
+      <ellipse cx="50" cy="30" rx="46" ry="7" fill="none" stroke="rgba(105,231,255,.10)" stroke-width=".18" transform="rotate(-9 50 30)"/>
+      <ellipse cx="50" cy="30" rx="46" ry="7" fill="none" stroke="rgba(157,124,255,.09)" stroke-width=".18" transform="rotate(-9 50 30)" stroke-dasharray="1.2 .9"/>
+      <ellipse cx="50" cy="82" rx="40" ry="6" fill="none" stroke="rgba(105,231,255,.08)" stroke-width=".16" transform="rotate(7 50 82)"/>
+      <circle cx="97" cy="5" r="1" fill="rgba(244,201,107,.5)"/>
+      <circle cx="4" cy="18" r=".9" fill="rgba(200,225,255,.5)"/>
+    </svg>
+  </div>
+  <div class="stack" id="stack"></div>
+</section>
+
+<!-- ===================== المشهد ٥: لعبة جمع النجوم (قبل حفل الاستقبال) ===================== -->
+<section class="scene" id="s5">
+  <canvas id="gameCv" aria-label="لعبة جمع النجوم"></canvas>
+  <div class="gm-hud" id="gmHud">
+    <div class="gm-row">
+      <div class="gm-score"><span>⭐</span><b id="gmScore">0</b><em>/ 15</em></div>
+      <div class="gm-bar"><i id="gmBar"></i></div>
+      <div class="gm-lives" id="gmLives">❤️❤️❤️</div>
+    </div>
+    <div class="gm-row">
+      <span class="gm-tt">حرّك الصاروخ لجمع النجوم وتجنّب النيازك</span>
+      <button class="gm-skip" id="gmSkipHud" type="button">تخطي ⏭</button>
+    </div>
+  </div>
+
+  <div class="gm-ov" id="gmIntro" role="dialog" aria-modal="true" aria-labelledby="gmT">
+    <div class="gm-panel">
+      <div class="gm-sys">MINI MISSION</div>
+      <h2 id="gmT">تحدّي جمع النجوم ⭐</h2>
+      <p>قبل الدخول إلى حفل الاستقبال، أثبتوا مهارتكم في قيادة الصاروخ!</p>
+      <ul class="gm-how">
+        <li><i>👆</i><span>حرّك الصاروخ بإصبعك أو الماوس أو أسهم الكيبورد</span></li>
+        <li><i>⭐</i><span>اجمع 15 نجمة (النجمة الذهبية تساوي 3)</span></li>
+        <li><i>☄️</i><span>تجنّب النيازك — معك 3 قلوب فقط</span></li>
+      </ul>
+      <div class="gm-btns">
+        <button class="gm-btn" id="gmStart" type="button">ابدأ اللعب 🚀</button>
+        <button class="gm-btn ghost" id="gmSkipIntro" type="button">تخطي</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gm-ov" id="gmEnd" role="dialog" aria-modal="true">
+    <div class="gm-panel">
+      <div class="big only-win">🏆</div>
+      <div class="big only-lose">💥</div>
+      <h2><span class="only-win">مهمة ناجحة!</span><span class="only-lose">اصطدم الصاروخ!</span></h2>
+      <p class="only-win" id="gmEndP"></p>
+      <p class="only-lose">نفدت القلوب — جرّبوا مرة أخرى واجمعوا نجومًا أكثر</p>
+      <div class="gm-btns">
+        <button class="gm-btn only-win" id="gmGo" type="button">الدخول إلى حفل الاستقبال ✨</button>
+        <button class="gm-btn only-lose" id="gmRetry" type="button">إعادة المحاولة 🔁</button>
+        <button class="gm-btn ghost only-lose" id="gmSkipEnd" type="button">تخطي</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="flash"></div>
+<!-- التحكم الموسيقي -->
+<div id="mwrap">
+  <audio id="bgAudio" src="Interstellar_Main_Theme_Extra_Extended_Soundtrack_by_Hans_Zimmer.mp3" loop preload="auto"></audio>
+</div>
+<button id="music" type="button" aria-label="تشغيل / إيقاف الموسيقى">🔊 تشغيل الموسيقى</button>
+
+<script>
+(() => {
+'use strict';
+/* المرافق الأساسية */
+const $ = s => document.querySelector(s);
+const W = () => innerWidth, H = () => innerHeight;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = p => 1 - Math.pow(1 - p, 3);
+const easeIO = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const anim = (ms, fn) => new Promise(res => {
+  const t0 = performance.now();
+  (function f(t) { const p = Math.min(1, (t - t0) / ms); fn(p); p < 1 ? requestAnimationFrame(f) : res(); })(t0);
+});
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tp = ms => REDUCED ? Math.max(14, ms * .16) : ms; // تسريع الأزمنة لمن يطلب حركة أقل
+
+/* ==========================================================
+   البيانات الرسمية الكاملة ليوم التعريف
+   ========================================================== */
+const DATA = {
+  event: {
+    faculty: 'كلية علوم الملاحة وتكنولوجيا الفضاء',
+    program: 'برنامج العلوم التطبيقية للفضاء والملاحة',
+    university: 'جامعة بني سويف الأهلية',
+    dateText: 'الثلاثاء 22 سبتمبر 2026 — الساعة 11:00 صباحاً',
+    target: new Date('2026-09-22T11:00:00')
+  },
+  logos: {
+    faculty: 'assets/img/logo-faculty.png',
+    univ: 'assets/img/logo-university.png'
+  },
+  // برعاية كريمة (رئيس الجامعة)
+  patronage: {
+    name: 'أ.د/ طارق علي',
+    role: 'رئيس جامعة بني سويف الأهلية',
+    confirmed: true // يطابق الوصف المذكور في المصدر (شبه مؤكد)
+  },
+  // تحت الإشراف
+  supervision: [
+    {
+      name: 'أ.د/ رشا توفيق',
+      role: 'نائب رئيس الجامعة للشؤون الأكاديمية',
+    },
+    {
+      name: 'أ.د/ محمد محمود سامي',
+      role: 'عميد القطاع الهندسي والعلوم الأساسية والتطبيقية',
+    },
+    {
+      name: 'أ.م.د/ محمد مراد',
+      role: 'المدير الأكاديمي لبرنامج العلوم التطبيقية للفضاء والملاحة',
+    }
+  ],
+  // ضيف المميزف
+  guest: {
+    name: 'أ.د/ أسامة شلبية',
+    role: 'عميد كلية علوم الملاحة وتكنولوجيا الفضاء',
+  },
+  facultyNote: 'بحضور نخبة من أعضاء هيئة التدريس',
+  // الفقرة الثقافية الترفيهية (عدّلوا العناوين والأوصاف هنا بسهولة)
+  culture: {
+    title: 'الفقرة الثقافية الترفيهية',
+    lead: 'عرض مفتوح للأنشطة الترفيهية والثقافية للطلاب',
+    items: [
+      { icon: '🧠', title: 'مسابقة ثقافية', desc: 'أسئلة سريعة في الفضاء والملاحة والثقافة العامة', c: '#69e7ff', rgb: '105,231,255' },
+      { icon: '🎮', title: 'ألعاب وتحديات', desc: 'تحديات جماعية وألعاب تفاعلية بين الطلاب', c: '#9d7cff', rgb: '157,124,255' },
+      { icon: '🎤', title: 'مواهب الطلاب', desc: 'فقرات فنية ومواهب من طلاب الكلية', c: '#f4c96b', rgb: '244,201,107' },
+      { icon: '📸', title: 'لحظات تذكارية', desc: 'صور جماعية وذكريات من اليوم التعريفي', c: '#5dffb0', rgb: '93,255,176' }
+    ]
+  },
+  // القائم بالعمل (تظهر قبل النجمة في الخاتمة)
+  credits: [
+    { name: 'چنى سيد', icon: '👩‍🚀' },
+    { name: 'عمرو جبالي', icon: '👨‍🚀' },
+    { name: 'محمد احمد', icon: '👨‍🚀' },
+    { name: 'ماهر جمال', icon: '👨‍🚀' },
+    { name: 'شيماء عبد المحسن', icon: '👩‍🚀' }
+  ],
+  footer: 'كلية علوم الملاحة وتكنولوجيا الفضاء — برنامج العلوم التطبيقية للفضاء والملاحة — جامعة بني سويف الأهلية 2026'
+};
+
+/* ملاحظة: الصور المحلية تتطابق أبعادها مع صور الموقع الرسمي
+   (bnsu-snas.github.io/images) مما يرجّح تحديد أصحابها،
+   ورغم ذلك تُترك تعليقات للمراجعة حيث لم تُؤكد رسمياً. */
+
+/* ---------- عدّاد تنازلي نحو الموعد ---------- */
+const pad2 = n => String(n).padStart(2, '0');
+function tickCount() {
+  let d = DATA.event.target - Date.now();
+  if (d < 0) d = 0;
+  const h = Math.floor(d / 3.6e6), m = Math.floor(d % 3.6e6 / 6e4), s = Math.floor(d % 6e4 / 1000);
+  const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = pad2(v); };
+  set('cd-h', h); set('cd-m', m); set('cd-s', s);
+}
+
+/* ---------- بناء أقسام المحتوى الكوني ---------- */
+const lsNode = l => `
+  <figure class="snode">
+    <b>${l.name}</b>
+    <em>${l.role}</em>
+  </figure>`;
+
+const starPts = (R, r) => Array.from({ length: 10 }, (_, i) => {
+  const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R;
+  return (Math.cos(a) * rr).toFixed(2) + ',' + (Math.sin(a) * rr).toFixed(2);
+}).join(' ');
+
+function renderContent() {
+  const D = DATA;
+  $('#stack').innerHTML = `
+  <section class="zone rvl hero" data-zone="orbit">
+    <div class="earth-orb" aria-hidden="true">
+      <svg viewBox="-62 -62 124 124" focusable="false">
+        <defs>
+          <radialGradient id="eg" cx="38%" cy="30%" r="80%">
+            <stop offset="0" stop-color="#3a7ad9"/>
+            <stop offset=".55" stop-color="#163c80"/>
+            <stop offset="1" stop-color="#0a1f4a"/>
+          </radialGradient>
+          <radialGradient id="egl" cx="50%" cy="50%" r="50%">
+            <stop offset="78%" stop-color="rgba(120,200,255,.5)"/>
+            <stop offset="100%" stop-color="rgba(120,200,255,0)"/>
+          </radialGradient>
+        </defs>
+        <circle cx="-6" cy="-14" r="42" fill="url(#eg)"/>
+        <circle cx="-6" cy="-14" r="45" fill="none" stroke="url(#egl)" stroke-width="3" opacity=".75"/>
+        <ellipse cx="-6" cy="-14" rx="36" ry="13" fill="none" stroke="rgba(180,220,255,.4)" stroke-width=".5" transform="rotate(-18 -6 -14)"/>
+        <ellipse cx="-6" cy="-14" rx="36" ry="13" fill="none" stroke="rgba(120,180,255,.2)" stroke-width=".4" stroke-dasharray="2 3" transform="rotate(28 -6 -14)"/>
+        <circle cx="-44" cy="-36" r="1.4" fill="rgba(220,235,255,.6)"/>
+        <circle cx="26" cy="-46" r="1" fill="rgba(244,201,107,.55)"/>
+      </svg>
+    </div>
+    <div class="zin">
+      <div class="hero-logos">
+        <img src="${D.logos.faculty}" alt="شعار كلية علوم الملاحة وتكنولوجيا الفضاء" loading="lazy">
+        <img src="${D.logos.univ}" alt="شعار جامعة بني سويف الأهلية" loading="lazy">
+      </div>
+      <div class="eyebrow">ORIENTATION DAY AT NSST</div>
+      <h1>اليوم التعريفي</h1>
+      <div class="fac">${D.event.faculty}</div>
+      <div class="prog">${D.event.program}</div>
+      <div class="uni">${D.event.university}</div>
+      <div class="dt">${D.event.dateText}</div>
+      <div class="cd" id="countdown" role="timer" aria-label="العد التنازلي لبدء الفعاليات">
+        <div class="cd-cap">LAUNCH SEQUENCE · COUNTDOWN</div>
+        <div class="cd-row" dir="ltr">
+          <i class="cd-t">T−</i>
+          <span class="cd-cell"><b id="cd-h">00</b><em>ساعة</em></span>
+          <i class="cd-col">:</i>
+          <span class="cd-cell"><b id="cd-m">00</b><em>دقيقة</em></span>
+          <i class="cd-col">:</i>
+          <span class="cd-cell"><b id="cd-s">00</b><em>ثانية</em></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="zone rvl foc" data-zone="command">
+    <div class="zin">
+      <div class="eyebrow ar">تحت رعاية كريمة من</div>
+      <div class="foc-flex">
+        <div class="name">
+          <h2>${D.patronage.name}</h2>
+          <div class="role">${D.patronage.role}</div>
+          <div class="coord">NAV-CMD 01 · 29.0708°N 31.0992°E · ORBIT</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="zone rvl super" data-zone="deep">
+    <div class="zin">
+      <div class="eyebrow ar">تحت إشراف</div>
+      <div class="scon">
+        <div class="sgrid">
+          ${D.supervision.map(lsNode).join('')}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="zone rvl guest" data-zone="guest">
+    <div class="zin">
+      <div class="grow">
+        <div class="g-txt">
+          <div class="eyebrow ar">السادة الضيوف</div>
+          <h3>${D.guest.name}</h3>
+          <div class="role">${D.guest.role}</div>
+          <div class="coord">GUEST-OF-HONOR · FINAL APPROACH</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="zone rvl note" data-zone="note">
+    <div class="zin">
+      <div class="eyebrow ar">أعضاء هيئة التدريس</div>
+      <div class="nquote" role="note"><p>${D.facultyNote}</p></div>
+    </div>
+  </section>
+
+  <section class="zone rvl cult" data-zone="culture">
+    <div class="zin">
+      <div class="eyebrow ar">${D.culture.title}</div>
+      <p class="cult-lead">${D.culture.lead}</p>
+      <div class="cgrid">
+        ${D.culture.items.map(c => `
+        <article class="cc" style="--c:${c.c};--cr:${c.rgb}">
+          <span class="ci" aria-hidden="true">${c.icon}</span>
+          <b>${c.title}</b>
+          <p>${c.desc}</p>
+        </article>`).join('')}
+      </div>
+    </div>
+  </section>
+
+  <section class="zone rvl fin" data-zone="arrival">
+    <div class="zin">
+      <i class="fring" aria-hidden="true"></i>
+      <div class="fin-stage" id="finStage">
+        <!-- ١) القائم بالعمل -->
+        <div class="cr" id="finCredits">
+          <div class="cr-cap">MISSION CREW</div>
+          <h2>القائم بالعمل</h2>
+          <ul>
+            ${D.credits.map((c, i) => `<li style="--fx:${i % 2 ? -70 : 70}px"><i aria-hidden="true">${c.icon}</i><span>${c.name}</span></li>`).join('')}
+          </ul>
+        </div>
+        <!-- ٢) النجمة اللي هتنفجر -->
+        <div class="stw" id="finStar" aria-hidden="true">
+          <div class="stbox">
+            <svg viewBox="-60 -60 120 120" focusable="false">
+              <defs>
+                <radialGradient id="fsg" cx="50%" cy="42%" r="62%">
+                  <stop offset="0" stop-color="#fffbe3"/><stop offset=".55" stop-color="#ffd35c"/><stop offset="1" stop-color="#ff9d2e"/>
+                </radialGradient>
+              </defs>
+              <polygon points="${starPts(54, 27)}" fill="url(#fsg)" stroke="#fff3bf" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="-25" cy="5" r="5.5" fill="#ff8f6b" opacity=".45"/><circle cx="25" cy="5" r="5.5" fill="#ff8f6b" opacity=".45"/>
+              <g class="eye"><circle cx="-13" cy="-6" r="5" fill="#3b2100"/><circle cx="-14.6" cy="-8" r="1.7" fill="#fff"/></g>
+              <g class="eye"><circle cx="13" cy="-6" r="5" fill="#3b2100"/><circle cx="11.4" cy="-8" r="1.7" fill="#fff"/></g>
+              <path class="ms" d="M-11 8 Q0 20 11 8" fill="none" stroke="#5a3200" stroke-width="3.6" stroke-linecap="round"/>
+              <ellipse class="mw" cx="0" cy="14" rx="6.5" ry="8.5" fill="#5a3200"/>
+              <path class="sweat" d="M33 -22 Q38 -12 33 -8 Q28 -12 33 -22Z" fill="#7fdcff" stroke="#fff" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="fin-cnt" id="finCount"></div>
+          <div class="fin-warn" id="finWarn">⚠️ انتبهوا! النجمة على وشك الانفجار فرحًا بكم</div>
+        </div>
+        <!-- ٣) The End -->
+        <div class="theend" id="finEnd">
+          <h2 aria-label="The End">${[...'The\u00a0End'].map((ch, k) => `<span style="--k:${k}" aria-hidden="true">${ch}</span>`).join('')}</h2>
+          <p>نراكم في المدار 🚀</p>
+          <button class="fin-replay" id="finReplay" type="button">🔁 إعادة الانفجار</button>
+        </div>
+        <canvas id="finCv" aria-hidden="true"></canvas>
+      </div>
+      <div class="fin-foot" id="finFoot">
+        <div class="f-logos">
+          <img src="${D.logos.faculty}" alt="شعار كلية علوم الملاحة وتكنولوجيا الفضاء" loading="lazy">
+          <img src="${D.logos.univ}" alt="شعار جامعة بني سويف الأهلية" loading="lazy">
+        </div>
+        <p>${D.footer}</p>
+        <div class="en">FACULTY OF NAVIGATION SCIENCES &amp; SPACE TECHNOLOGY</div>
+        <div class="fin-cap">NOMINAL · SEE YOU IN ORBIT</div>
+      </div>
+    </div>
+  </section>`;
+}
+renderContent();
+
+/* النجوم المبعثرة في مشهد المحتوى (خفيفة لكن موزّعة بعناية) */
+function sprinkle() {
+  const host = document.getElementById('stz');
+  if (!host) return;
+  const n = Math.min(30, 12 + Math.round(W() * H() / 52000));
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    const s = Math.random() > .85 ? 2.4 : 1.5;
+    h += `<i style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${s}px;height:${s}px;animation-duration:${(4 + Math.random() * 7).toFixed(1)}s;animation-delay:${(Math.random() * 6).toFixed(1)}s"></i>`;
+  }
+  host.innerHTML = h;
+}
+sprinkle();
+
+/* ---------- الخلفية النجمية (خفيفة، غير ملونة كثيراً) ---------- */
+const sc = $('#stars'), sx = sc.getContext('2d');
+const fc = $('#fx'), fx = fc.getContext('2d');
+let stars = [], warp = 0, warpTarget = 0;
+function sizeCanvases() {
+  const d = Math.min(devicePixelRatio || 1, 2);
+  for (const [c, x] of [[sc, sx], [fc, fx]]) { c.width = W() * d; c.height = H() * d; x.setTransform(d, 0, 0, d, 0, 0); }
+}
+function initStars() {
+  const n = Math.round(W() * H() / 9000); // نجوم قليلة وهادئة
+  stars = Array.from({ length: n }, () => ({ x: (Math.random() - .5) * 2, y: (Math.random() - .5) * 2, z: Math.random() * .95 + .05, tw: Math.random() * 6.28, c: Math.random() }));
+}
+function starTick(now) {
+  warp += (warpTarget - warp) * .07;
+  const w = W(), h = H(), cx = w / 2, cy = h / 2;
+  sx.clearRect(0, 0, w, h);
+  for (const s of stars) {
+    s.z -= .0005 + warp * .028;
+    let px = cx + s.x * cx / s.z, py = cy + s.y * cy / s.z;
+    if (s.z <= .03 || px < -20 || px > w + 20 || py < -20 || py > h + 20) { s.x = (Math.random() - .5) * 2; s.y = (Math.random() - .5) * 2; s.z = 1; continue; }
+    const tw = .5 + .5 * Math.sin(now / 800 + s.tw);
+    const a = Math.min(1, (1 - s.z) * 1.3 + .2) * tw;
+    sx.fillStyle = s.c > .94 ? `rgba(255,220,170,${a})` : `rgba(185,215,255,${a})`;
+    const size = (1 - s.z) * 1.6 + .4;
+    if (warp > .1) {
+      const ox = cx + s.x * cx / s.z, oy = cy + s.y * cy / s.z;
+      sx.strokeStyle = sx.fillStyle; sx.lineWidth = size; sx.beginPath(); sx.moveTo(ox, oy); sx.lineTo(px, py); sx.stroke();
+    } else { sx.beginPath(); sx.arc(px, py, size, 0, 6.283); sx.fill(); }
+  }
+  requestAnimationFrame(starTick);
+}
+sizeCanvases(); initStars(); requestAnimationFrame(starTick);
+
+/* ---------- تحريك الرائد والصاروخ ---------- */
+const astro = $('#astro');
+let cur = { x: 0, y: 0, s: 1, r: 0 };
+let curFlip = false;
+function placeAstro(x, y, s = 1, r = 0, flip = false) {
+  cur = { x, y, s, r }; curFlip = flip;
+  astro.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%) rotate(${r}deg) scale(${flip ? -s : s},${s})`;
+}
+let hoverId = 0;
+function hover() {
+  const id = ++hoverId, b = { ...cur };
+  (function f(t) {
+    if (id !== hoverId) return;
+    placeAstro(b.x, b.y + Math.sin(t / 520) * 6, b.s, b.r + Math.sin(t / 900) * 3, curFlip);
+    requestAnimationFrame(f);
+  })(performance.now());
+}
+const center = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+
+const shipEl = $('#ship');
+function placeShip(x, y, r = 0) {
+  shipEl.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%) rotate(${r}deg)`;
+}
+
+/* ---------- آلة الحالة: الانتقال بين المشاهد ---------- */
+let io;
+function go(n) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.toggle('active', s.id === 's' + n));
+  document.body.dataset.scene = n;
+  if (n === 4) { $('#s4').scrollTop = 0; observeCards(); observeFinale(); }
+  if (n === 5) gameEnter();
+}
+function observeCards() {
+  const root = $('#s4');
+  io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { root, threshold: .1 });
+  document.querySelectorAll('#s4 .rvl').forEach(c => io.observe(c));
+}
+function flash(ms = 500, strong = false) {
+  const f = $('#flash');
+  f.style.background = strong
+    ? 'radial-gradient(circle,#fff 0,rgba(190,240,255,.8) 40%,rgba(120,170,255,.4) 75%,transparent 100%)'
+    : 'radial-gradient(circle,rgba(255,255,255,.85) 0,rgba(170,235,255,.5) 40%,rgba(90,150,255,.22) 75%,transparent 100%)';
+  f.classList.add('on'); setTimeout(() => f.classList.remove('on'), ms);
+}
+const setStatus = txt => { const el = $('.hud .tr'); if (el) el.textContent = txt; };
+
+/* ---------- تخطيط المشهد ١ ---------- */
+const gate = $('#gate'), earth = $('#earth'), phaseSpace = $('#phaseSpace'), phaseMap = $('#phaseMap');
+let started = false;
+function layout1() {
+  const w = W(), h = H(), land = w > h * 1.05;
+  const gw = land ? Math.min(w * .34, 430) : Math.min(w * .86, 380);
+  gate.style.width = gw + 'px';
+  gate.style.left = (land ? w * .2 : w * .5) + 'px';
+  gate.style.top = (land ? h * .73 : h * .9) + 'px';
+  const rw = Math.max(74, Math.min(128, gw * .3));
+  shipEl.style.width = rw + 'px';
+}
+layout1();
+
+/* ---------- الموسيقى الخلفية (مع تلاشي) ---------- */
+const bgAudio = $('#bgAudio'), musicBtn = $('#music');
+let musicOn = false, musicUserPaused = false, volT = null;
+function fadeVol(v, ms) {
+  clearInterval(volT);
+  const st = bgAudio.volume, t0 = performance.now();
+  volT = setInterval(() => {
+    const p = Math.min(1, (performance.now() - t0) / ms);
+    bgAudio.volume = st + (v - st) * (1 - Math.pow(1 - p, 2));
+    if (p >= 1) clearInterval(volT);
+  }, 40);
+}
+function startMusic() {
+  if (musicOn) return;
+  bgAudio.volume = 0;
+  const p = bgAudio.play();
+  musicOn = true; setMusicLabel();
+  fadeVol(.55, 1500);
+  if (p && p.catch) p.catch(() => { musicOn = false; setMusicLabel(); });
+}
+function stopMusic() {
+  if (!musicOn) return;
+  fadeVol(0, 500);
+  setTimeout(() => { bgAudio.pause(); musicOn = false; setMusicLabel(); }, 550);
+}
+function setMusicLabel() { musicBtn.textContent = musicOn ? '🔈 إيقاف الموسيقى' : '🔊 تشغيل الموسيقى'; }
+musicBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  if (musicOn) { musicUserPaused = true; stopMusic(); } else { musicUserPaused = false; bgAudio.volume = .0; const p = bgAudio.play(); musicOn = true; setMusicLabel(); fadeVol(.55, 800); if (p && p.catch) p.catch(()=>{}); }
+});
+document.addEventListener('click', () => { if (!musicOn && !musicUserPaused) startMusic(); }, { once: true });
+setMusicLabel();
+
+/* ==========================================================
+   تسلسل الهبوط: صاروخ يهبط من أعلى على الأرض ثم يخرج الرائد
+   ========================================================== */
+$('#startBtn').addEventListener('click', async () => {
+  if (started) return; started = true;
+  startMusic();
+  $('#startWrap').classList.add('gone');
+  $('.hero h1').style.opacity = 0;
+  await sleep(tp(300));
+
+  // نقطة الهبوط أعلى الكوكب
+  const er = earth.getBoundingClientRect();
+  const rw = shipEl.offsetWidth, rh = rw * 260 / 120;
+  const landX = er.left + er.width / 2;
+  const landBottom = er.top - 2;
+  const landCenterY = landBottom - rh / 2;
+
+  shipEl.style.opacity = 1;
+  await anim(tp(3600), p => {
+    const e = ease(p);
+    const y = -rh * 1.8 + (landCenterY + rh * 1.8) * e;
+    const sway = Math.sin(p * Math.PI * 7) * 3 * (1 - p);
+    placeShip(landX + sway, y, Math.sin(p * Math.PI * 3) * 1.5);
+  });
+  // لمسة أرض (ارتداد خفيف)
+  await anim(tp(420), p => { const b = Math.abs(Math.sin(p * Math.PI)); placeShip(landX, landBottom - rh / 2 - b * 16, 0); });
+  shipEl.classList.add('landing');
+  earth.classList.add('pulse');
+  setStatus('STATUS: LANDED');
+
+  // فتح فتحة الصاروخ وخروج الرائد بمظلة
+  await sleep(tp(500));
+  shipEl.classList.add('open');
+  setStatus('STATUS: HATCH OPEN');
+  await sleep(tp(650));
+
+  astro.style.width = Math.max(44, rw * .62) + 'px';
+  const hatchPt = { x: landX, y: landCenterY + rh * .1 };
+  const padPt = { x: landX + rw * .55, y: landBottom + rw * .12 };
+  astro.style.opacity = 1;
+  astro.classList.add('chute');
+  await anim(tp(850), p => { const e = ease(p); placeAstro(hatchPt.x, hatchPt.y, .2 + .45 * e, 12 * Math.sin(p * 9)); });
+  await anim(tp(1100), p => { const e = easeIO(p); placeAstro(lerp(hatchPt.x, padPt.x, e), lerp(hatchPt.y, padPt.y, e), lerp(.65, .95, ease(p)), Math.sin(p * Math.PI * 6) * 16); });
+  astro.classList.remove('chute');
+  astro.classList.add('landed');
+  await sleep(tp(500));
+  astro.classList.remove('landed');
+  hover();
+  setStatus('STATUS: NAVIGATION INIT');
+  await sleep(tp(900));
+
+  // انتقال إلى خريطة الحرم
+  astro.style.opacity = 0;
+  shipEl.style.opacity = 0;
+  $('.hero').style.opacity = 0;
+  phaseSpace.classList.remove('show');
+  phaseMap.hidden = false;
+  phaseMap.classList.add('show');
+  setStatus('STATUS: ON CAMPUS');
+  await sleep(tp(500));
+  await campusWalk();
+});
+
+/* ==========================================================
+   المشي داخل خريطة الحرم: بوابة ← ميدان ← مباني ← مبنى H
+   ========================================================== */
+async function campusWalk() {
+  const wrap = phaseMap.getBoundingClientRect();
+  const AR = 1000 / 1250; // نسبة viewBox
+  let w = wrap.width, h = wrap.height;
+  if (w / h > AR) w = h * AR; else h = w / AR;
+  const rD = { left: wrap.left + (wrap.width - w) / 2, top: wrap.top + (wrap.height - h) / 2, width: w, height: h };
+  const mapPt = (vx, vy) => ({ x: rD.left + rD.width * vx / 1000, y: rD.top + rD.height * vy / 1250 });
+
+  // عقد المسار بالترتيب الفعلي للحرم
+  const nodes = [
+    { v: [500, 205], label: 'GATE' },
+    { v: [500, 410], label: 'ROAD' },
+    { v: [500, 470], label: 'ROUNDABOUT', pause: 500 },
+    { v: [600, 470], label: 'ROAD' },
+    { v: [710, 420], label: 'BUILDING H', last: true }
+  ];
+
+  astro.style.opacity = 1;
+  astro.style.width = Math.max(40, rD.width * .078) + 'px';
+  const tpEl = $('#trailPath');
+  tpEl.classList.add('drawn');
+
+  const g0 = mapPt(nodes[0].v[0], nodes[0].v[1]);
+  placeAstro(g0.x, g0.y, 1, 0, false);
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = mapPt(nodes[i].v[0], nodes[i].v[1]);
+    const b = mapPt(nodes[i + 1].v[0], nodes[i + 1].v[1]);
+    if (nodes[i].pause) await sleep(tp(nodes[i].pause));
+    astro.classList.add('walk');
+    await anim(tp(2000), p => {
+      const e = easeIO(p);
+      const bob = Math.abs(Math.sin(p * Math.PI * 8));
+      placeAstro(lerp(a.x, b.x, e), lerp(a.y, b.y, e) - bob * 5, 1, bob * 4, b.x < a.x);
+    });
+    astro.classList.remove('walk');
+  }
+
+  // الوصول إلى مبنى H
+  hover();
+  const hArr = mapPt(nodes[nodes.length - 1].v[0], nodes[nodes.length - 1].v[1]);
+  placeAstro(hArr.x, hArr.y, 1, 0, false);
+  setStatus('STATUS: ARRIVED');
+  const hb = $('#mapH');
+  hb.classList.add('arrived');
+  await sleep(tp(800));
+  astro.style.opacity = 0;
+  flash(600);
+  await sleep(tp(350));
+  go(2);
+  await sleep(tp(350));
+  runScene2();
+}
+
+/* ==========================================================
+   المشهد ٢: داخل المبنى — المشي نحو بوابة H208
+   ========================================================== */
+const door = $('#door');
+async function runScene2() {
+  const h = H(), floorTop = h * .73;
+  const aw = astro.offsetWidth, ah = aw * 1.5, S = .9;
+  const y0 = floorTop - ah * S / 2 - 4;
+  const hr = $('#hatchL').getBoundingClientRect();
+  const sx0 = hr.left + hr.width / 2;
+  const dr = door.getBoundingClientRect();
+  const endX = Math.max(sx0 + 60, dr.left - aw * .5);
+  astro.style.opacity = 1;
+  astro.style.width = 'clamp(60px,14vmin,120px)';
+  await sleep(tp(300));
+  await anim(tp(700), p => placeAstro(sx0, y0, .15 + (S - .15) * ease(p), 0));
+  await sleep(tp(400));
+  astro.classList.add('walk');
+  await anim(tp(4000), p => {
+    const e = easeIO(p), bob = Math.sin(p * Math.PI * 7);
+    placeAstro(lerp(sx0, endX, e), y0 - Math.abs(bob) * 7, S, bob * 4, endX < sx0);
+  });
+  astro.classList.remove('walk');
+  hover();
+  door.classList.add('ready');
+}
+
+/* ==========================================================
+   تفاعل الباب: طرق ← رجّة ← صوت ← فتح
+   (Web Audio API لتوليد صوت الطرق بدون ملف صوتي)
+   ========================================================== */
+let AC = null;
+function getAC() { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); return AC; }
+function knockSound() {
+  const ac = getAC();
+  if (ac.state === 'suspended') ac.resume();
+  const t = ac.currentTime;
+  const thump = (freq, at, vol) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(freq, at);
+    g.gain.setValueAtTime(vol, at); g.gain.exponentialRampToValueAtTime(.001, at + .09);
+    o.connect(g); g.connect(ac.destination); o.start(at); o.stop(at + .1);
+  };
+  // ضجيج صغير لمحاكاة قرع معدني
+  const nb = ac.createBuffer(1, ac.sampleRate * .06, ac.sampleRate);
+  const dta = nb.getChannelData(0);
+  for (let i = 0; i < dta.length; i++) dta[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource(); src.buffer = nb;
+  const nf = ac.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 900;
+  const ng = ac.createGain(); ng.gain.setValueAtTime(.5, t); ng.gain.exponentialRampToValueAtTime(.001, t + .06);
+  src.connect(nf); nf.connect(ng); ng.connect(ac.destination); src.start(t);
+  thump(170, t, .9); thump(120, t + .12, .8);
+}
+function whooshSound() {
+  const ac = getAC();
+  const t = ac.currentTime;
+  const o = ac.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(70, t + .7);
+  const g = ac.createGain(); g.gain.setValueAtTime(.22, t); g.gain.exponentialRampToValueAtTime(.001, t + .75);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .8);
+}
+let opened = false;
+door.addEventListener('click', async () => {
+  if (!door.classList.contains('ready') || opened) return; opened = true;
+  door.classList.remove('ready');
+  hoverId++;
+  knockSound();
+  door.classList.add('knocking');          // رجّة الباب
+  await sleep(tp(560));
+  door.classList.remove('knocking');
+  door.classList.add('open');              // فتح الباب الحلقي
+  whooshSound();
+  setStatus('STATUS: ACCESS GRANTED');
+  astro.classList.remove('walk');
+  await sleep(tp(700));
+  const c = center(door), f = { ...cur };
+  await anim(tp(900), p => { const e = easeIO(p); placeAstro(lerp(f.x, c.x, e), lerp(f.y, c.y + 24, e), lerp(f.s, .22, e), 0); });
+  astro.style.opacity = 0;
+  flash(600);
+  await sleep(tp(350));
+  go(3);                                   // المشهد التالي: نافذة الترحيب
+  $('#ahlan').classList.add('show');
+});
+
+/* ---------- نافذة الترحيب ---------- */
+let s4 = false;
+/* بعد الترحيب ← لعبة قصيرة ← ثم حفل الاستقبال (المشهد ٤) */
+let toGameDone = false;
+function toGame() { if (toGameDone) return; toGameDone = true; $('#ahlan').classList.remove('show'); go(5); }
+$('#toS4').addEventListener('click', toGame);
+
+/* ---------- العدّاد التنازلي ---------- */
+tickCount();
+setInterval(tickCount, 1000);
+
+/* ---------- تجهيزات أخرى ---------- */
+addEventListener('resize', () => { sizeCanvases(); initStars(); if (!started) layout1(); });
+
+
+/* ==========================================================
+   أدوات مشتركة: صوت + أرقام
+   ========================================================== */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+function tone(freq, dur, type = 'sine', vol = .12, when = 0, slide = 0) {
+  try {
+    const ac = getAC();
+    if (ac.state === 'suspended') ac.resume();
+    const t = ac.currentTime + when;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .03);
+  } catch (e) { /* الصوت اختياري */ }
+}
+function boomSound() {
+  try {
+    const ac = getAC();
+    if (ac.state === 'suspended') ac.resume();
+    const t = ac.currentTime, len = Math.floor(ac.sampleRate * 1.3);
+    const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const f = ac.createBiquadFilter(); f.type = 'lowpass';
+    f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(120, t + 1.1);
+    const g = ac.createGain(); g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + 1.25);
+    src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t);
+    tone(95, 1, 'sine', .55, 0, -62);
+    [784, 1046, 1318, 1568].forEach((fq, i) => tone(fq, .5, 'triangle', .07, .35 + i * .09));
+  } catch (e) { /* الصوت اختياري */ }
+}
+
+/* ==========================================================
+   المشهد ٥: لعبة «جمع النجوم» — قبل الدخول إلى حفل الاستقبال
+   ========================================================== */
+const GOAL = 15, MAX_LIVES = 3;
+const gcv = $('#gameCv'), gx = gcv.getContext('2d');
+const gHud = $('#gmHud'), gIntro = $('#gmIntro'), gEnd = $('#gmEnd');
+let gS = null, gRaf = 0, gLast = 0, gW = 0, gH = 0, gU = 40, gActive = false, gEntered = false;
+const gKeys = { l: false, r: false };
+const gPY = () => gH - Math.max(104, gH * .17);
+
+function gSize() {
+  const d = Math.min(devicePixelRatio || 1, 2);
+  gW = W(); gH = H();
+  gcv.width = gW * d; gcv.height = gH * d;
+  gx.setTransform(d, 0, 0, d, 0, 0);
+  gU = clamp(Math.min(gW, gH) * .075, 30, 60);
+}
+function gNew() {
+  gS = { run: false, score: 0, lives: MAX_LIVES, t: 0, tStar: .5, tAst: 1.3, invuln: 0, shake: 0,
+    p: { x: gW / 2, tx: gW / 2 }, items: [], parts: [] };
+  gUpdHud();
+}
+function gUpdHud() {
+  $('#gmScore').textContent = Math.min(gS.score, GOAL);
+  $('#gmBar').style.width = Math.min(100, gS.score / GOAL * 100) + '%';
+  $('#gmLives').textContent = '❤️'.repeat(gS.lives) + '🖤'.repeat(MAX_LIVES - gS.lives);
+}
+function gSpawn(kind) {
+  const s = gS;
+  if (kind === 'ast') {
+    const size = gU * rnd(.55, .9);
+    s.items.push({ k: 'ast', x: rnd(size, gW - size), y: -size * 1.6, size, r: size * .84, sp: rnd(.9, 1.25),
+      rot: rnd(0, 6.28), vr: rnd(-1.6, 1.6), shape: Array.from({ length: 9 }, () => rnd(.78, 1.12)) });
+  } else {
+    const gold = Math.random() < .12, size = gU * (gold ? .72 : .56);
+    s.items.push({ k: gold ? 'gold' : 'star', x: rnd(size + 4, gW - size - 4), y: -size * 1.6, size, r: size * .95,
+      sp: rnd(.85, 1.1), rot: rnd(0, 6.28), vr: rnd(-1, 1), v: gold ? 3 : 1 });
+  }
+}
+function gBurst(x, y, n, cols, power) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, 6.283), v = rnd(.25, 1) * power;
+    gS.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd(.4, .9), max: .9, r: rnd(1.6, 4), c: cols[i % cols.length] });
+  }
+}
+function gStep(dt) {
+  const s = gS;
+  s.p.x += (s.p.tx - s.p.x) * Math.min(1, dt * 16);
+  for (let i = s.parts.length - 1; i >= 0; i--) {
+    const q = s.parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= .96; q.vy *= .96;
+    if (q.life <= 0) s.parts.splice(i, 1);
+  }
+  if (s.shake > 0) s.shake = Math.max(0, s.shake - dt * 3);
+  if (!s.run) return;
+  s.t += dt;
+  const diff = Math.min(1, s.t / 50), speed = gH * (.27 + .18 * diff);
+  const dir = (gKeys.r ? 1 : 0) - (gKeys.l ? 1 : 0);
+  if (dir) s.p.tx = clamp(s.p.tx + dir * gW * .9 * dt, gU * .6, gW - gU * .6);
+  s.tStar -= dt; if (s.tStar <= 0) { s.tStar = rnd(.55, 1.0); gSpawn('star'); }
+  s.tAst -= dt; if (s.tAst <= 0) { s.tAst = rnd(.8, 1.3) - .3 * diff; gSpawn('ast'); }
+  if (s.invuln > 0) s.invuln -= dt;
+  const py = gPY(), pr = gU * .5;
+  for (let i = s.items.length - 1; i >= 0; i--) {
+    const it = s.items[i];
+    it.y += speed * it.sp * dt; it.rot += it.vr * dt;
+    if (it.y > gH + it.size * 2) { s.items.splice(i, 1); continue; }
+    if (Math.hypot(it.x - s.p.x, it.y - py) < it.r + pr) {
+      s.items.splice(i, 1);
+      if (it.k === 'ast') { if (s.invuln <= 0) gHit(it); }
+      else gCollect(it);
+      if (!s.run) return;
+    }
+  }
+}
+function gCollect(it) {
+  const s = gS; s.score += it.v;
+  gBurst(it.x, it.y, it.k === 'gold' ? 22 : 12, ['#fff', '#ffe08a', '#ffc23a', '#69e7ff'], it.k === 'gold' ? 260 : 190);
+  if (it.k === 'gold') [880, 1175, 1568].forEach((f, i) => tone(f, .16, 'triangle', .09, i * .06));
+  else { tone(880, .12, 'triangle', .1); tone(1320, .12, 'triangle', .07, .06); }
+  gUpdHud();
+  const sc = $('.gm-score'); sc.classList.remove('bump'); void sc.offsetWidth; sc.classList.add('bump');
+  if (s.score >= GOAL) gFinish(true);
+}
+function gHit(it) {
+  const s = gS; s.lives--; s.invuln = 1.4; s.shake = 1;
+  gBurst(it.x, it.y, 26, ['#ff7a3c', '#ffb347', '#ff4d4d', '#cfcfcf'], 300);
+  tone(150, .4, 'sawtooth', .16, 0, -100);
+  gUpdHud();
+  if (s.lives <= 0) gFinish(false);
+}
+function gFinish(win) {
+  gS.run = false; gS.items.length = 0;
+  gKeys.l = gKeys.r = false;
+  if (win) { [523, 659, 784, 1046].forEach((f, i) => tone(f, .28, 'triangle', .11, i * .12)); gBurst(gS.p.x, gPY(), 60, ['#fff', '#ffe08a', '#69e7ff', '#b18cff'], 380); }
+  else { tone(320, .7, 'sawtooth', .13, 0, -220); }
+  setTimeout(() => {
+    if (!gActive) return;
+    gEnd.classList.toggle('win', win); gEnd.classList.toggle('lose', !win);
+    if (win) $('#gmEndP').textContent = `جمعتم ${Math.min(gS.score, GOAL)} نجمة ووصلتم بسلام — القاعة في انتظاركم`;
+    gHud.classList.remove('on');
+    gEnd.classList.add('show');
+    warpTarget = 0;
+  }, win ? 900 : 700);
+}
+function gStart() {
+  gNew(); gS.run = true;
+  gIntro.classList.remove('show'); gEnd.classList.remove('show');
+  gHud.classList.add('on');
+  warpTarget = .22;
+  tone(440, .1, 'triangle', .09); tone(660, .14, 'triangle', .09, .09);
+}
+
+/* ---- الرسم ---- */
+function drawStar(it) {
+  const R = it.size, r = R * .45, gold = it.k === 'gold';
+  gx.save(); gx.translate(it.x, it.y); gx.rotate(it.rot * .4);
+  gx.shadowColor = gold ? '#ffb020' : '#ffe08a'; gx.shadowBlur = gold ? 26 : 16;
+  gx.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; gx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+  gx.closePath();
+  gx.fillStyle = gold ? '#ffc23a' : '#ffe7a3'; gx.fill();
+  gx.lineWidth = 1.5; gx.strokeStyle = '#fff'; gx.stroke();
+  gx.restore();
+}
+function drawAst(it) {
+  const R = it.size, n = it.shape.length;
+  gx.save(); gx.translate(it.x, it.y); gx.rotate(it.rot);
+  gx.beginPath();
+  for (let i = 0; i < n; i++) { const a = i / n * 6.283; gx.lineTo(Math.cos(a) * R * it.shape[i], Math.sin(a) * R * it.shape[i]); }
+  gx.closePath();
+  const g = gx.createRadialGradient(-R * .3, -R * .3, R * .1, 0, 0, R * 1.1);
+  g.addColorStop(0, '#a39790'); g.addColorStop(1, '#4a423f');
+  gx.fillStyle = g; gx.fill();
+  gx.lineWidth = 2; gx.strokeStyle = 'rgba(255,140,80,.8)'; gx.stroke();
+  gx.fillStyle = 'rgba(30,24,22,.45)';
+  gx.beginPath(); gx.arc(R * .25, R * .1, R * .2, 0, 6.283); gx.fill();
+  gx.beginPath(); gx.arc(-R * .3, R * .25, R * .13, 0, 6.283); gx.fill();
+  gx.restore();
+}
+function drawRocket(x, y, u, t, blink) {
+  gx.save(); gx.translate(x, y);
+  if (blink && Math.floor(t * 12) % 2) gx.globalAlpha = .35;
+  const fl = u * (.7 + .3 * Math.sin(t * 40));
+  const fg = gx.createLinearGradient(0, u * .9, 0, u * .9 + fl * 1.6);
+  fg.addColorStop(0, '#fff6c8'); fg.addColorStop(.4, '#ffb347'); fg.addColorStop(1, 'rgba(255,90,60,0)');
+  gx.fillStyle = fg;
+  gx.beginPath(); gx.moveTo(-u * .26, u * .9); gx.quadraticCurveTo(0, u * .9 + fl * 2.2, u * .26, u * .9); gx.closePath(); gx.fill();
+  gx.fillStyle = '#ff5a3c';
+  gx.beginPath(); gx.moveTo(-u * .4, u * .25); gx.lineTo(-u * .88, u * 1.02); gx.lineTo(-u * .4, u * .88); gx.closePath(); gx.fill();
+  gx.beginPath(); gx.moveTo(u * .4, u * .25); gx.lineTo(u * .88, u * 1.02); gx.lineTo(u * .4, u * .88); gx.closePath(); gx.fill();
+  const bg = gx.createLinearGradient(-u * .5, 0, u * .5, 0);
+  bg.addColorStop(0, '#b9c6e6'); bg.addColorStop(.45, '#ffffff'); bg.addColorStop(1, '#a9b6d8');
+  gx.fillStyle = bg;
+  gx.beginPath(); gx.moveTo(0, -u * 1.25);
+  gx.bezierCurveTo(u * .58, -u * .72, u * .52, u * .1, u * .42, u * .92);
+  gx.lineTo(-u * .42, u * .92);
+  gx.bezierCurveTo(-u * .52, u * .1, -u * .58, -u * .72, 0, -u * 1.25);
+  gx.closePath(); gx.fill();
+  gx.lineWidth = 1.5; gx.strokeStyle = '#7d8aae'; gx.stroke();
+  const wg = gx.createRadialGradient(-u * .07, -u * .42, u * .02, 0, -u * .35, u * .24);
+  wg.addColorStop(0, '#7fdcff'); wg.addColorStop(1, '#1d3d8f');
+  gx.fillStyle = wg; gx.beginPath(); gx.arc(0, -u * .35, u * .21, 0, 6.283); gx.fill();
+  gx.lineWidth = 2; gx.strokeStyle = '#46527a'; gx.stroke();
+  gx.fillStyle = '#46527a'; gx.fillRect(-u * .3, u * .84, u * .6, u * .1);
+  gx.restore();
+}
+function gDraw() {
+  const s = gS; gx.clearRect(0, 0, gW, gH);
+  if (!s) return;
+  gx.save();
+  if (s.shake > 0) gx.translate(rnd(-1, 1) * 9 * s.shake, rnd(-1, 1) * 9 * s.shake);
+  for (const it of s.items) it.k === 'ast' ? drawAst(it) : drawStar(it);
+  drawRocket(s.p.x, gPY(), gU * .9, performance.now() / 1000, s.invuln > 0);
+  for (const q of s.parts) { gx.globalAlpha = clamp(q.life / q.max, 0, 1); gx.fillStyle = q.c; gx.beginPath(); gx.arc(q.x, q.y, q.r, 0, 6.283); gx.fill(); }
+  gx.globalAlpha = 1;
+  gx.restore();
+  if (s.shake > .05) { gx.fillStyle = `rgba(255,60,40,${s.shake * .16})`; gx.fillRect(0, 0, gW, gH); }
+}
+function gLoop(now) {
+  if (!gActive) return;
+  const dt = Math.min(.05, (now - gLast) / 1000 || 0); gLast = now;
+  if (gS) gStep(dt);
+  gDraw();
+  gRaf = requestAnimationFrame(gLoop);
+}
+function gameEnter() {
+  if (gEntered) return; gEntered = true;
+  gActive = true; gSize(); gNew();
+  gHud.classList.remove('on'); gEnd.classList.remove('show'); gIntro.classList.add('show');
+  gLast = performance.now(); gRaf = requestAnimationFrame(gLoop);
+}
+function gToStage4() {
+  if (s4) return; s4 = true;
+  gActive = false; cancelAnimationFrame(gRaf); warpTarget = 0;
+  tone(660, .12, 'triangle', .09); tone(990, .2, 'triangle', .09, .1);
+  flash(700, true);
+  setTimeout(() => go(4), 260);
+}
+/* ---- التحكم ---- */
+const gPt = e => { if (gS) gS.p.tx = clamp(e.clientX, gU * .6, gW - gU * .6); };
+gcv.addEventListener('pointermove', gPt);
+gcv.addEventListener('pointerdown', gPt);
+addEventListener('keydown', e => {
+  if (!gActive) return;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { gKeys.l = true; e.preventDefault(); }
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { gKeys.r = true; e.preventDefault(); }
+});
+addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') gKeys.l = false;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') gKeys.r = false;
+});
+addEventListener('resize', () => { if (gActive) gSize(); });
+$('#gmStart').addEventListener('click', gStart);
+$('#gmRetry').addEventListener('click', gStart);
+$('#gmGo').addEventListener('click', gToStage4);
+['#gmSkipIntro', '#gmSkipHud', '#gmSkipEnd'].forEach(id => $(id).addEventListener('click', gToStage4));
+
+/* ==========================================================
+   الخاتمة: القائم بالعمل ← نجمة (تتوتّر) ← انفجار ← The End
+   ========================================================== */
+const fcv = $('#finCv'), fcx = fcv.getContext('2d');
+let fP = [], fR = [], fRaf = 0, fW = 0, fH = 0, fLast = 0;
+let finId = 0, finSeen = false, finObs = null;
+
+function finSize() {
+  const r = fcv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2);
+  fW = r.width; fH = r.height;
+  fcv.width = fW * d; fcv.height = fH * d;
+  fcx.setTransform(d, 0, 0, d, 0, 0);
+}
+function finBurst(x, y, n, power, size = 1) {
+  const pal = ['#ffffff', '#ffe08a', '#ffb347', '#69e7ff', '#9d7cff', '#ff7ac8'];
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, 6.283), v = Math.pow(Math.random(), .6) * power;
+    fP.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd(1.1, 2.4), max: 2.4, r: rnd(1.4, 3.6) * size,
+      c: pal[(Math.random() * pal.length) | 0], streak: Math.random() < .6 });
+  }
+  if (!fRaf) { fLast = performance.now(); fRaf = requestAnimationFrame(finLoop); }
+}
+function finRing(x, y, vr, w, delay = 0) {
+  setTimeout(() => { fR.push({ x, y, r: 10, vr, w, life: 1.1, max: 1.1 }); if (!fRaf) { fLast = performance.now(); fRaf = requestAnimationFrame(finLoop); } }, delay);
+}
+function finLoop(now) {
+  const dt = Math.min(.05, (now - fLast) / 1000); fLast = now;
+  fcx.clearRect(0, 0, fW, fH);
+  fcx.globalCompositeOperation = 'lighter';
+  for (let i = fR.length - 1; i >= 0; i--) {
+    const o = fR[i]; o.life -= dt; o.r += o.vr * dt;
+    if (o.life <= 0) { fR.splice(i, 1); continue; }
+    fcx.globalAlpha = clamp(o.life / o.max, 0, 1) * .85;
+    fcx.lineWidth = o.w * (o.life / o.max) + 1; fcx.strokeStyle = '#ffe9b0';
+    fcx.beginPath(); fcx.arc(o.x, o.y, o.r, 0, 6.283); fcx.stroke();
+  }
+  for (let i = fP.length - 1; i >= 0; i--) {
+    const q = fP[i]; q.life -= dt;
+    if (q.life <= 0) { fP.splice(i, 1); continue; }
+    q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= Math.pow(.32, dt); q.vy *= Math.pow(.32, dt); q.vy += 34 * dt;
+    fcx.globalAlpha = clamp(q.life / q.max * 1.4, 0, 1);
+    if (q.streak) {
+      fcx.strokeStyle = q.c; fcx.lineWidth = q.r; fcx.lineCap = 'round';
+      fcx.beginPath(); fcx.moveTo(q.x, q.y); fcx.lineTo(q.x - q.vx * .035, q.y - q.vy * .035); fcx.stroke();
+    } else { fcx.fillStyle = q.c; fcx.beginPath(); fcx.arc(q.x, q.y, q.r, 0, 6.283); fcx.fill(); }
+  }
+  fcx.globalAlpha = 1; fcx.globalCompositeOperation = 'source-over';
+  if (fP.length || fR.length) fRaf = requestAnimationFrame(finLoop);
+  else { fRaf = 0; fcx.clearRect(0, 0, fW, fH); }
+}
+function finReset() {
+  fP.length = 0; fR.length = 0;
+  ['#finCredits', '#finStar', '#finEnd'].forEach(s => $(s).classList.remove('on', 'out', 'charge', 'pop'));
+  document.querySelectorAll('#finCredits li').forEach(li => li.classList.remove('in'));
+  $('#finFoot').classList.remove('on');
+  $('#finWarn').classList.remove('on');
+  $('#finCount').textContent = '';
+  $('#finStage').classList.remove('boom');
+}
+async function runFinale() {
+  const id = ++finId, alive = () => id === finId;
+  const wait = async ms => { await sleep(tp(ms)); return alive(); };
+  finReset(); finSize();
+  const stage = $('#finStage'), cr = $('#finCredits'), stw = $('#finStar'), end = $('#finEnd');
+  // ١) القائم بالعمل — الأسماء تدخل واحداً تلو الآخر
+  cr.classList.add('on');
+  if (!await wait(900)) return;
+  const lis = [...cr.querySelectorAll('li')];
+  for (let i = 0; i < lis.length; i++) {
+    lis[i].classList.add('in');
+    tone(660 + i * 110, .16, 'triangle', .08);
+    if (!await wait(780)) return;
+  }
+  if (!await wait(1500)) return;
+  cr.classList.add('out');
+  if (!await wait(950)) return;
+  cr.classList.remove('on');
+  // ٢) النجمة تظهر ثم تتوتر
+  stw.classList.add('on');
+  if (!await wait(1100)) return;
+  $('#finWarn').classList.add('on');
+  stw.classList.add('charge');
+  for (const n of ['3', '2', '1']) {
+    const c = $('#finCount'); c.textContent = n; c.classList.remove('tick'); void c.offsetWidth; c.classList.add('tick');
+    tone(300 + (3 - +n) * 120, .18, 'square', .06);
+    if (!await wait(950)) return;
+  }
+  // ٣) الانفجار
+  stw.classList.add('pop');
+  stage.classList.add('boom');
+  boomSound(); flash(800, true);
+  if (!REDUCED) {
+    finSize();
+    const sr = $('#finStar .stbox').getBoundingClientRect(), cr0 = fcv.getBoundingClientRect();
+    const cx = sr.left + sr.width / 2 - cr0.left, cy = sr.top + sr.height / 2 - cr0.top;
+    finBurst(cx, cy, 170, Math.max(420, fW * .7));
+    finRing(cx, cy, Math.max(520, fW * .9), 7);
+    finRing(cx, cy, Math.max(380, fW * .65), 4, 140);
+    finRing(cx, cy, Math.max(260, fW * .45), 3, 300);
+  }
+  if (!await wait(650)) return;
+  stw.classList.remove('on', 'charge', 'pop');
+  // ٤) The End + ألعاب نارية صغيرة
+  end.classList.add('on');
+  if (!REDUCED) {
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        if (!alive()) return;
+        finBurst(rnd(fW * .12, fW * .88), rnd(fH * .12, fH * .78), 46, 300, .9);
+        tone(rnd(700, 1400), .18, 'triangle', .05);
+      }, tp(500 + i * 420));
+    }
+  }
+  if (!await wait(2600)) return;
+  $('#finFoot').classList.add('on');
+}
+function observeFinale() {
+  const st = $('#finStage'); if (!st || finSeen) return;
+  finObs = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && !finSeen) { finSeen = true; finObs.disconnect(); runFinale(); }
+  }), { root: $('#s4'), threshold: .5 });
+  finObs.observe(st);
+}
+$('#finReplay').addEventListener('click', () => runFinale());
+addEventListener('resize', () => { if (finSeen) finSize(); });
+
+})();
+</script>
+</body>
+</html>
